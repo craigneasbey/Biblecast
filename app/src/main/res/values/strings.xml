@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Biblecast</string>
+    <string name="action_settings">Settings</string>
+    <string name="ok">OK</string>
+    <string name="api_failed">Request Failed</string>
+    <string name="api_no_results">No Results Returned</string>
+    <string name="queryHint">John 3:16</string>
+</resources>
