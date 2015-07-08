@@ -5,7 +5,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 
 /**
- * Created by thedog on 1/07/15.
+ * Created by craigneasbey on 1/07/15.
  */
 public class UIUtils {
 

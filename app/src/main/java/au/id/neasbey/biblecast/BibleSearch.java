@@ -17,6 +17,7 @@ import android.widget.ListView;
 import android.widget.SearchView;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
@@ -25,10 +26,13 @@ import java.net.URLEncoder;
 import java.util.LinkedList;
 import java.util.List;
 
+import au.id.neasbey.biblecast.util.BibleAPIRequest;
 import au.id.neasbey.biblecast.util.BibleAPIResponseParser;
 import au.id.neasbey.biblecast.util.UIUtils;
 
-
+/**
+ * Created by craigneasbey on 30/06/15.
+ */
 public class BibleSearch extends AppCompatActivity {
 
     private static final String TAG = BibleSearch.class.getSimpleName();
@@ -106,6 +110,7 @@ public class BibleSearch extends AppCompatActivity {
         private ArrayAdapter<Spanned> resultsAdapter;
         private String bibleVersions = "eng-KJV";
         private List<Spanned> resultList = new LinkedList<>();
+        private List<Spanned> returnList;
 
         protected void onPreExecute() {
             // Start Progress Dialog (Message)
@@ -122,96 +127,17 @@ public class BibleSearch extends AppCompatActivity {
         @Override
         protected String doInBackground(String... params) {
 
+            String resultToDisplay;
             String apiUrl = params[0]; // API URL
             String apiAuth = params[1] + ":"; // API token in key/value pair
             String apiQuery = params[2]; // API query
 
-            String resultToDisplay = "";
-            String requestUrl = createRequestUrl(apiUrl, apiQuery, bibleVersions);
-
-            if(requestUrl.isEmpty()) {
-                resultToDisplay = "Please enter a valid query";
-            } else {
-                Log.d(TAG, "Request: " + requestUrl);
-
-                StringBuffer responseText = new StringBuffer();
-                BufferedReader reader = null;
-
-                try {
-
-                    // Send HTTP Get request
-                    URL url = new URL(requestUrl);
-                    HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
-
-                    // Set application API token
-                    String basicAuth = "Basic " + new String(android.util.Base64.encode(apiAuth.getBytes(), android.util.Base64.NO_WRAP));
-                    urlConnection.addRequestProperty("Authorization", basicAuth);
-
-                    int responseCode = urlConnection.getResponseCode();
-                    String responseMessage = urlConnection.getResponseMessage();
-
-                    Log.d(TAG, "Response code: " + responseCode);
-                    Log.d(TAG, "Response message: " + responseMessage);
-
-                    if (responseCode == 401) {
-                        throw new Exception("Application API token is incorrect");
-                    }
-
-                    if (responseCode != 200) {
-                        throw new Exception(responseCode + " - " + responseMessage);
-                    }
-
-                    // Get server response
-                    reader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
-                    String line;
-
-                    while ((line = reader.readLine()) != null) {
-                        responseText.append(line);
-                        responseText.append("\n");
-                    }
-
-                    // Parse server response
-                    BibleAPIResponseParser bibleAPIResponseParser = new BibleAPIResponseParser();
-                    bibleAPIResponseParser.parseJSONToList(responseText.toString(), resultList);
-
-                    Log.d(TAG, "Response: " + resultList.toString());
-
-                } catch (Exception e) {
-                    resultToDisplay = e.getMessage();
-                } finally {
-                    try {
-                        if (reader != null) {
-                            reader.close();
-                        }
-                    } catch (Exception ex) {
-                        Log.e(TAG, "Failed to close input reader: " + ex.getMessage());
-                    }
-                }
-            }
+            BibleAPIRequest bibleRequest = new BibleAPIRequest();
+            bibleRequest.createRequestUrl(apiUrl, apiAuth, apiQuery, bibleVersions);
+            resultToDisplay = bibleRequest.performRequest();
+            returnList = bibleRequest.getResultsList();
 
             return resultToDisplay;
-        }
-
-        private String createRequestUrl(String apiUrl, String apiQuery, String bibleVersions) {
-            String requestUrl = "";
-
-            if (apiQuery != null && apiQuery.isEmpty()) {
-                Log.e(TAG, "No query specified");
-            } else {
-                try {
-                    // Set request address
-                    requestUrl += apiUrl;
-
-                    // Set request parameters
-                    requestUrl += "?query=" + URLEncoder.encode(apiQuery, "UTF-8");
-                    requestUrl += "&version=" + URLEncoder.encode(bibleVersions, "UTF-8");
-
-                } catch (UnsupportedEncodingException e) {
-                    Log.i(TAG, "URL encoding Error: " + e.getMessage());
-                }
-            }
-
-            return requestUrl;
         }
 
         protected void onPostExecute(String result) {
@@ -232,8 +158,10 @@ public class BibleSearch extends AppCompatActivity {
                 Log.e(TAG, "Request Failed: " + result);
 
                 UIUtils.displayError(getActivity(), R.string.api_failed, getText(R.string.ok).toString(), result);
-            } else if (result != null && !resultList.isEmpty()) {
+            } else if (result != null && returnList != null && !returnList.isEmpty()) {
                 Log.d(TAG, "Request Successful");
+
+                updateResultList();
 
                 return true;
             } else {
@@ -246,6 +174,17 @@ public class BibleSearch extends AppCompatActivity {
             }
 
             return false;
+        }
+
+        /**
+         * Update the displayed list from the list returned from the web service
+         */
+        private void updateResultList() {
+            for(Spanned html : returnList) {
+                resultList.add(html);
+            }
+
+            returnList = null;
         }
     }
 }

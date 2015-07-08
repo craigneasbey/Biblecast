@@ -3,7 +3,7 @@ package au.id.neasbey.biblecast.util;
 import junit.framework.TestCase;
 
 /**
- * <a href="http://d.android.com/tools/testing/testing_android.html">Testing Fundamentals</a>
+ * Created by craigneasbey on 30/06/15.
  */
 public class UtilTest extends TestCase {
 

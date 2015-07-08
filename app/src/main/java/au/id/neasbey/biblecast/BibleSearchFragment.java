@@ -8,7 +8,7 @@ import android.view.ViewGroup;
 
 
 /**
- * A placeholder fragment containing a simple view.
+ * Created by craigneasbey on 30/06/15.
  */
 public class BibleSearchFragment extends Fragment {
 

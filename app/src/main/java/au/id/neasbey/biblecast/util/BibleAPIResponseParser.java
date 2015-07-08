@@ -78,6 +78,14 @@ public class BibleAPIResponseParser {
         }
     }
 
+    /**
+     * Parses bible results with passages.  Adds each passage to the display list.
+     *
+     * @param spannedList Display list
+     * @param passagesValues JSONArray of passages
+     * @return {@code Boolean.TRUE} if results exist, otherwise {@code Boolean.FALSE}
+     * @throws JSONException
+     */
     private boolean parsePassages(List<Spanned> spannedList, JSONArray passagesValues) throws JSONException {
         boolean results = false;
 
@@ -99,7 +107,7 @@ public class BibleAPIResponseParser {
                     String passageText = passageValues.getString(textKey);
 
                     if (passageText != null) {
-                        // Add new results to the list
+                        // Add new results to the list, this will clear the results on the screen
                         spannedList.add(Html.fromHtml(passageText));
 
                         results = true;
@@ -111,7 +119,14 @@ public class BibleAPIResponseParser {
         return results;
     }
 
-
+    /**
+     * Parses bible results with verses.  Adds each verse to the display list.
+     *
+     * @param spannedList Display list
+     * @param versesValues JSONArray of verses
+     * @return {@code Boolean.TRUE} if results exist, otherwise {@code Boolean.FALSE}
+     * @throws JSONException
+     */
     private boolean parseVerses(List<Spanned> spannedList, JSONArray versesValues) throws JSONException {
         boolean results = false;
 
@@ -121,7 +136,7 @@ public class BibleAPIResponseParser {
 
             for (int i = 0; i < versesLength; i++) {
                 if (first) {
-                    // Remove all entries from the list
+                    // Remove all entries from the list, this will clear the results on the screen
                     spannedList.clear();
 
                     first = false;
