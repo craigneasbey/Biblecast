@@ -31,7 +31,7 @@ import au.id.neasbey.biblecast.util.UIUtils;
 
 public class BibleSearch extends AppCompatActivity {
 
-    private static final String TAG = "BibleSearch";
+    private static final String TAG = BibleSearch.class.getSimpleName();
     private final String apiURL = "https://bibles.org/v2/search.js";
     private String apiToken;
 

@@ -1,7 +1,9 @@
 # Biblecast
 Chromecast the Bible from Internet Web Services
 
+#Project Home
 https://github.com/craigneasbey/Biblecast
+
 # Release Schedule
 ## Release BIBLE-V1.0.0
 Search Screen
@@ -30,3 +32,4 @@ https://developers.google.com/cast/docs/developers
 * http://daringfireball.net/projects/markdown/syntax
 * http://stackoverflow.com/questions/496651/connecting-to-remote-url-which-requires-authentication-using-java
 * https://romannurik.github.io/AndroidAssetStudio/icons-launcher.html
+* http://inthecheesefactory.com/blog/how-to-upload-library-to-jcenter-maven-central-as-dependency/en

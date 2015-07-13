@@ -14,11 +14,14 @@ import java.util.List;
  */
 public class BibleAPIResponseParser {
 
-    private final String responseKey = "response";
-    private final String searchKey = "search";
-    private final String resultKey = "result";
-    private final String passagesKey = "passages";
-    private final String textKey = "text";
+    private static final String responseKey = "response";
+    private static final String searchKey = "search";
+    private static final String resultKey = "result";
+    private static final String typeKey = "type";
+    private static final String passagesKey = "passages";
+    private static final String versesKey = "verses";
+    private static final String referenceKey = "reference";
+    private static final String textKey = "text";
 
     /**
      * Parse the JSON response from bibles.org
@@ -29,7 +32,6 @@ public class BibleAPIResponseParser {
     public void parseJSONToList(String jsonString, List<Spanned> spannedList) throws Exception {
 
         try {
-
             boolean results = false;
 
             // Creates a new JSONObject with name/value mappings from the JSON string
@@ -46,35 +48,22 @@ public class BibleAPIResponseParser {
                 if(searchValues != null) {
                     JSONObject resultValues = searchValues.optJSONObject(resultKey);
 
-                    // Get passages values
+                    // Get type value
                     if(resultValues != null) {
-                        JSONArray passagesValues = resultValues.optJSONArray(passagesKey);
+                        String typeValue = resultValues.optString(typeKey);
 
-                        if(passagesValues != null) {
-                            int passagesLength = passagesValues.length();
-                            boolean first = true;
-
-                            for (int i = 0; i < passagesLength; i++) {
-                                if (first) {
-                                    // Remove all entries from the list
-                                    spannedList.clear();
-
-                                    first = false;
-                                }
-
-                                JSONObject passageValues = passagesValues.optJSONObject(i);
-
-                                if (passageValues != null) {
-                                    String passageText = passageValues.getString(textKey);
-
-                                    if (passageText != null) {
-                                        // Add new results to the list
-                                        spannedList.add(Html.fromHtml(passageText));
-
-                                        results = true;
-                                    }
-                                }
-                            }
+                        // check type
+                        switch (typeValue) {
+                            case passagesKey:
+                                // Get passages values
+                                results = parsePassages(spannedList, resultValues.optJSONArray(passagesKey));
+                                break;
+                            case versesKey:
+                                // Get verses values
+                                results = parseVerses(spannedList, resultValues.optJSONArray(versesKey));
+                                break;
+                            default:
+                                results = parseVerses(spannedList, resultValues.optJSONArray(versesKey));
                         }
                     }
                 }
@@ -87,5 +76,73 @@ public class BibleAPIResponseParser {
 
             throw new Exception(e.getMessage());
         }
+    }
+
+    private boolean parsePassages(List<Spanned> spannedList, JSONArray passagesValues) throws JSONException {
+        boolean results = false;
+
+        if (passagesValues != null) {
+            int passagesLength = passagesValues.length();
+            boolean first = true;
+
+            for (int i = 0; i < passagesLength; i++) {
+                if (first) {
+                    // Remove all entries from the list
+                    spannedList.clear();
+
+                    first = false;
+                }
+
+                JSONObject passageValues = passagesValues.optJSONObject(i);
+
+                if (passageValues != null) {
+                    String passageText = passageValues.getString(textKey);
+
+                    if (passageText != null) {
+                        // Add new results to the list
+                        spannedList.add(Html.fromHtml(passageText));
+
+                        results = true;
+                    }
+                }
+            }
+        }
+
+        return results;
+    }
+
+
+    private boolean parseVerses(List<Spanned> spannedList, JSONArray versesValues) throws JSONException {
+        boolean results = false;
+
+        if (versesValues != null) {
+            int versesLength = versesValues.length();
+            boolean first = true;
+
+            for (int i = 0; i < versesLength; i++) {
+                if (first) {
+                    // Remove all entries from the list
+                    spannedList.clear();
+
+                    first = false;
+                }
+
+                JSONObject verseValues = versesValues.optJSONObject(i);
+
+                if (verseValues != null) {
+                    String referenceText = verseValues.getString(referenceKey);
+                    String verseText = verseValues.getString(textKey);
+
+                    if (referenceText != null && verseText != null) {
+                        // Add new results to the list
+                        spannedList.add(Html.fromHtml(referenceText + " " + verseText));
+
+                        results = true;
+                    }
+                }
+            }
+        }
+
+        return results;
     }
 }
