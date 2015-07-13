@@ -1,6 +1,30 @@
 # Biblecast
 Chromecast the Bible from Internet Web Services
 
+https://github.com/craigneasbey/Biblecast
+# Release Schedule
+## Release BIBLE-V1.0.0
+Search Screen
+search filter bar:
+- text search box eg. John 3:16
+- KJV bible version only
+results page to display bible
+## Release BIBLE-V1.1.0
+search filter bar:
+- Chromecast button
+## Release BIBLE-V1.2.0
+search filter bar:
+- list of bible versions
+## Release BIBLE-V1.3.0
+ search filter bar:
+-  text search box with previous entries and auto complete suggestions
+
+## BibleSearch API
+* http://bibles.org/pages/api
+
+## Google Developer
+http://developer.android.com/develop/index.html
+https://developers.google.com/cast/docs/developers
 
 ## Helpful links
 * http://daringfireball.net/projects/markdown/syntax
