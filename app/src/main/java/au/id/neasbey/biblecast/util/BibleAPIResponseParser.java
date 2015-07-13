@@ -11,6 +11,8 @@ import java.util.List;
 
 /**
  * Created by craigneasbey on 30/06/15.
+ *
+ * Bible API response parser utility
  */
 public class BibleAPIResponseParser {
 

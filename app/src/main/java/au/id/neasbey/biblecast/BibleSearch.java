@@ -16,27 +16,21 @@ import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.SearchView;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.net.URLEncoder;
 import java.util.LinkedList;
 import java.util.List;
 
 import au.id.neasbey.biblecast.util.BibleAPIRequest;
-import au.id.neasbey.biblecast.util.BibleAPIResponseParser;
 import au.id.neasbey.biblecast.util.UIUtils;
 
 /**
  * Created by craigneasbey on 30/06/15.
+ *
+ * Activity that allows the user to enter bible search term and return results from a web service
  */
 public class BibleSearch extends AppCompatActivity {
 
     private static final String TAG = BibleSearch.class.getSimpleName();
-    private final String apiURL = "https://bibles.org/v2/search.js";
+    private String apiURL;
     private String apiToken;
 
     @Override
@@ -44,9 +38,11 @@ public class BibleSearch extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_bible_search);
 
+        apiURL = getText(R.string.api_url).toString();
         apiToken = getText(R.string.api_token).toString();
         handleIntent(getIntent());
     }
+
 
     @Override
     protected void onNewIntent(Intent intent) {
@@ -55,9 +51,9 @@ public class BibleSearch extends AppCompatActivity {
     }
 
     /**
-     * Get the intent, verify the action and get the query
+     * Get the intent, verify the action  is a search and get the query
      *
-     * @param intent
+     * @param intent New intent search action
      */
     private void handleIntent(Intent intent) {
         if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
@@ -105,11 +101,11 @@ public class BibleSearch extends AppCompatActivity {
      */
     private class BibleAPI extends AsyncTask<String, String, String> {
 
-        private ProgressDialog progressDialog = new ProgressDialog(BibleSearch.this);
+        private final ProgressDialog progressDialog = new ProgressDialog(BibleSearch.this);
 
         private ArrayAdapter<Spanned> resultsAdapter;
-        private String bibleVersions = "eng-KJV";
-        private List<Spanned> resultList = new LinkedList<>();
+        private final String bibleVersions = "eng-KJV";
+        private final List<Spanned> resultList = new LinkedList<>();
         private List<Spanned> returnList;
 
         protected void onPreExecute() {
@@ -145,13 +141,17 @@ public class BibleSearch extends AppCompatActivity {
             // Close progress dialog
             progressDialog.dismiss();
 
-            if(isSuccessfulResult(result)) {
+            if(isResultSuccessful(result)) {
                 // Notify the list adapter the data has changed
                 resultsAdapter.notifyDataSetChanged();
+
+                // Hide the entry keyboard
+                SearchView searchView = (SearchView) findViewById(R.id.searchView);
+                searchView.clearFocus();
             }
         }
 
-        private boolean isSuccessfulResult(String result) {
+        private boolean isResultSuccessful(String result) {
 
             // Handle any errors
             if (result != null && !result.isEmpty()) {
@@ -184,6 +184,7 @@ public class BibleSearch extends AppCompatActivity {
                 resultList.add(html);
             }
 
+            // free memory
             returnList = null;
         }
     }

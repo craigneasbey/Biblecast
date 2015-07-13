@@ -10,6 +10,8 @@ import java.util.List;
 
 /**
  * Created by craigneasbey on 2/07/15.
+ *
+ * Tests the BibleAPIResponseParser
  */
 public class BibleAPIResponseParserTest extends TestCase {
 
@@ -18,14 +20,16 @@ public class BibleAPIResponseParserTest extends TestCase {
 
     /**
      * Create test JSON data and expected spanned list
-     * @param expectedList
-     * @param successful
-     * @return
+     *
+     * @param expectedList Excepted list of spanned HTML
+     * @param type Result type, passage or verse
+     * @param successful Is success or failure expected?
+     * @return JSON response text
      */
     private String createJSON(List<Spanned> expectedList, String type, boolean successful) {
         String jsonResponse = "";
 
-        // Create test JSON data, complete if successful, otherwise with missing elements
+        // Create test JSON data of type, complete if successful, otherwise with missing elements
         switch(type) {
             case passageType:
                 // https://bibles.org/v2/search.js?query=John+3%3A16&version=eng-KJV
@@ -61,16 +65,16 @@ public class BibleAPIResponseParserTest extends TestCase {
     }
 
     public void testParsePassagesJSONResultToListSuccessful() {
-        String jsonText;
         List<Spanned> expectedList = new LinkedList<>();
         List<Spanned> actualList = new LinkedList<>();
+        String jsonTextToParse;
 
-        jsonText = createJSON(expectedList, passageType, true);
+        jsonTextToParse = createJSON(expectedList, passageType, true);
 
         BibleAPIResponseParser objectBeingTest = new BibleAPIResponseParser();
 
         try {
-            objectBeingTest.parseJSONToList(jsonText, actualList);
+            objectBeingTest.parseJSONToList(jsonTextToParse, actualList);
         } catch(Exception e) {
             e.printStackTrace();
         }
@@ -80,35 +84,35 @@ public class BibleAPIResponseParserTest extends TestCase {
     }
 
     public void testParsePassagesJSONResultToListFailed() {
-        String jsonText;
         List<Spanned> expectedList = new LinkedList<>();
         List<Spanned> actualList = new LinkedList<>();
+        String jsonTextToParse;
 
-        jsonText = createJSON(expectedList, passageType, false);
+        jsonTextToParse = createJSON(expectedList, passageType, false);
 
         BibleAPIResponseParser objectBeingTest = new BibleAPIResponseParser();
 
         try {
-            objectBeingTest.parseJSONToList(jsonText, actualList);
+            objectBeingTest.parseJSONToList(jsonTextToParse, actualList);
         } catch(Exception e) {
             e.printStackTrace();
         }
 
         assertFalse(expectedList.size() == actualList.size());
-        assertFalse(expectedList.toString() == actualList.toString());
+        assertFalse(expectedList.toString().compareTo(actualList.toString()) == 0);
     }
 
     public void testParseVersesJSONResultToListSuccessful() {
-        String jsonText;
         List<Spanned> expectedList = new LinkedList<>();
         List<Spanned> actualList = new LinkedList<>();
+        String jsonTextToParse;
 
-        jsonText = createJSON(expectedList, verseType, true);
+        jsonTextToParse = createJSON(expectedList, verseType, true);
 
         BibleAPIResponseParser objectBeingTest = new BibleAPIResponseParser();
 
         try {
-            objectBeingTest.parseJSONToList(jsonText, actualList);
+            objectBeingTest.parseJSONToList(jsonTextToParse, actualList);
         } catch(Exception e) {
             e.printStackTrace();
         }
@@ -118,21 +122,21 @@ public class BibleAPIResponseParserTest extends TestCase {
     }
 
     public void testParseVersesJSONResultToListFailed() {
-        String jsonText;
         List<Spanned> expectedList = new LinkedList<>();
         List<Spanned> actualList = new LinkedList<>();
+        String jsonTextToParse;
 
-        jsonText = createJSON(expectedList, verseType, false);
+        jsonTextToParse = createJSON(expectedList, verseType, false);
 
         BibleAPIResponseParser objectBeingTest = new BibleAPIResponseParser();
 
         try {
-            objectBeingTest.parseJSONToList(jsonText, actualList);
+            objectBeingTest.parseJSONToList(jsonTextToParse, actualList);
         } catch(Exception e) {
             e.printStackTrace();
         }
 
         assertFalse(expectedList.size() == actualList.size());
-        assertFalse(expectedList.toString() == actualList.toString());
+        assertFalse(expectedList.toString().compareTo(actualList.toString()) == 0);
     }
 }

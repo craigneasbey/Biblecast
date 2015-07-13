@@ -1,6 +1,7 @@
 package au.id.neasbey.biblecast.util;
 
 import android.text.Spanned;
+import android.text.TextUtils;
 import android.util.Log;
 
 import java.io.BufferedReader;
@@ -15,6 +16,8 @@ import java.util.List;
 
 /**
  * Created by craigneasbey on 8/07/15.
+ *
+ * Bible API request handling
  */
 public class BibleAPIRequest {
 
@@ -24,14 +27,36 @@ public class BibleAPIRequest {
 
     private String apiAuth = "";
 
-    private List<Spanned> resultList = new LinkedList<>();
+    private final List<Spanned> resultList = new LinkedList<>();
 
-    public void createRequestUrl(String apiUrl, String apiAuth, String apiQuery, String bibleVersions) {
-        this.apiAuth = apiAuth;
+    public String createRequestUrl(String apiUrl, String apiAuth, String apiQuery, String bibleVersions) {
+        boolean missing = false;
 
-        if (apiQuery != null && apiQuery.isEmpty()) {
-            Log.e(TAG, "No query specified");
+        if(TextUtils.isEmpty(apiUrl))
+        {
+            Log.e(TAG, "No API URL specified");
+            missing = true;
+        }
+
+        if(TextUtils.isEmpty(apiAuth))
+        {
+            Log.e(TAG, "No API authentication specified");
+            missing = true;
         } else {
+            this.apiAuth = apiAuth;
+        }
+
+        if (TextUtils.isEmpty(apiQuery)) {
+            Log.e(TAG, "No API query specified");
+            missing = true;
+        }
+
+        if (TextUtils.isEmpty(bibleVersions)) {
+            Log.e(TAG, "No API bible versions specified");
+            missing = true;
+        }
+
+        if(!missing) {
             try {
                 // Set request address
                 requestUrl += apiUrl;
@@ -41,9 +66,11 @@ public class BibleAPIRequest {
                 requestUrl += "&version=" + URLEncoder.encode(bibleVersions, "UTF-8");
 
             } catch (UnsupportedEncodingException e) {
-                Log.i(TAG, "URL encoding Error: " + e.getMessage());
+                Log.e(TAG, "URL encoding Error: " + e.getMessage());
             }
         }
+
+        return requestUrl;
     }
 
     public String performRequest() {
@@ -55,9 +82,8 @@ public class BibleAPIRequest {
             try {
                 HttpURLConnection urlConnection = createConnection(requestUrl, apiAuth);
 
-                if (isServerResponseOk(urlConnection)) {
-                    handleResponse(urlConnection);
-                }
+                checkServerResponseOk(urlConnection);
+                handleResponse(urlConnection);
 
             } catch (Exception e) {
                 resultToDisplay = e.getMessage();
@@ -77,6 +103,17 @@ public class BibleAPIRequest {
         return resultList;
     }
 
+    private HttpURLConnection createConnection(String requestUrl, String apiAuth) throws IOException {
+        // Send HTTP Get request
+        URL url = new URL(requestUrl);
+        HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
+
+        // Set API authentication
+        urlConnection.addRequestProperty("Authorization", generateHttpAuthentication(apiAuth.getBytes()));
+
+        return urlConnection;
+    }
+
     private void handleResponse(HttpURLConnection urlConnection) throws Exception {
         String responseJSON = getServerResponseJSON(urlConnection);
 
@@ -91,7 +128,7 @@ public class BibleAPIRequest {
     private String getServerResponseJSON(HttpURLConnection urlConnection) throws Exception {
 
         BufferedReader reader = null;
-        StringBuffer responseText = new StringBuffer();
+        StringBuilder responseText = new StringBuilder();
 
         try {
             reader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
@@ -118,7 +155,7 @@ public class BibleAPIRequest {
         return responseText.toString();
     }
 
-    private boolean isServerResponseOk(HttpURLConnection urlConnection) throws Exception {
+    private void checkServerResponseOk(HttpURLConnection urlConnection) throws Exception {
         int responseCode = urlConnection.getResponseCode();
         String responseMessage = urlConnection.getResponseMessage();
 
@@ -132,19 +169,9 @@ public class BibleAPIRequest {
         if (responseCode != 200) {
             throw new Exception(responseCode + " - " + responseMessage);
         }
-
-        return true;
     }
 
-    private HttpURLConnection createConnection(String requestUrl, String apiAuth) throws IOException {
-        // Send HTTP Get request
-        URL url = new URL(requestUrl);
-        HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
-
-        // Set application API token
-        String basicAuth = "Basic " + new String(android.util.Base64.encode(apiAuth.getBytes(), android.util.Base64.NO_WRAP));
-        urlConnection.addRequestProperty("Authorization", basicAuth);
-
-        return urlConnection;
+    public static String generateHttpAuthentication(byte[] bytes) {
+        return "Basic " + new String(android.util.Base64.encode(bytes, android.util.Base64.NO_WRAP));
     }
 }

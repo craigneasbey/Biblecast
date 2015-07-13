@@ -9,6 +9,8 @@ import android.view.ViewGroup;
 
 /**
  * Created by craigneasbey on 30/06/15.
+ *
+ * A fragment of the Bible Search activity
  */
 public class BibleSearchFragment extends Fragment {
 
@@ -20,4 +22,6 @@ public class BibleSearchFragment extends Fragment {
                              Bundle savedInstanceState) {
         return inflater.inflate(R.layout.fragment_bible_search, container, false);
     }
+
+    // TODO move to fragment
 }
