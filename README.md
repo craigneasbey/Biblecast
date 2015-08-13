@@ -8,35 +8,7 @@ Chromecast the Bible from Internet Web Services
 Add Bible.org API token with a trailing colon to Biblecast/app/src/main/res/values/strings.xml, key api_auth.  For example: \<string name="api_auth"\>989879879jhljhlsjdfalsjbfebb2l3ib2lj3:\</string\>
 
 # Release Roadmap
-## Release BIBLE-V1.0.0
-* search screen
-  * search filter bar
-    * text search box eg. John 3:16
-    * KJV bible version only
-  * results page to display bible
-
-## Release BIBLE-V1.1.0
-* search screen
-  * search filter bar
-    * Google cast button
-    * Google cast results page change to swipe list scroll controller
-* Google cast
-  * custom receiver app to display results page
-* UI testing
-
-## Release BIBLE-V1.2.0
-* search screen
-  * search filter bar
-    * list of bible versions
-
-## Release BIBLE-V1.3.0
-* search screen
-  * search filter bar
-* text search box with previous entries and auto complete suggestions
-
-## Release BIBLE-V1.4.0
-* settings screen
-  * verse search result order: book, alphabetic
+* https://github.com/craigneasbey/Biblecast/issues?q=is%3Aopen+is%3Aissue+label%3Aenhancement
 
 # References
 
@@ -46,6 +18,11 @@ Add Bible.org API token with a trailing colon to Biblecast/app/src/main/res/valu
 ## Google Developer API
 * http://developer.android.com/develop/index.html
 * https://developers.google.com/cast/docs/developers
+
+## GIT
+### Squash Commits
+* https://github.com/ginatrapani/todo.txt-android/wiki/Squash-All-Commits-Related-to-a-Single-Issue-into-a-Single-Commit
+* http://www.syntevo.com/smartgit/howtos/latest/?page=workflows.modify-history
 
 ## Helpful links
 * http://daringfireball.net/projects/markdown/syntax
