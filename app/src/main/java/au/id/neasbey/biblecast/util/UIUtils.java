@@ -13,9 +13,10 @@ public class UIUtils {
 
     /**
      * Displays an Error Dialog prompt
+     *
      * @param context Context to display prompt over
-     * @param title Title of error
-     * @param button OK button text
+     * @param title   Title of error
+     * @param button  OK button text
      * @param message Error message
      */
     public static void displayError(Context context, int title, String button, String message) {

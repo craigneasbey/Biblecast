@@ -1,4 +1,4 @@
-package au.id.neasbey.biblecast.util;
+package au.id.neasbey.biblecast.API.BibleOrg;
 
 import android.text.Html;
 import android.text.Spanned;
@@ -8,15 +8,27 @@ import junit.framework.TestCase;
 import java.util.LinkedList;
 import java.util.List;
 
-/**
- * Created by craigneasbey on 2/07/15.
- *
- * Tests the BibleAPIResponseParser
- */
-public class BibleAPIResponseParserTest extends TestCase {
+import au.id.neasbey.biblecast.API.BibleAPIResponseParser;
 
-    private static final String passageType = "passage";
-    private static final String verseType = "verse";
+/**
+ * Created by craigneasbey on 11/08/15.
+ *
+ * Test the BibleAPIResponseParserBibleOrg
+ */
+public class BibleAPIResponseParserBibleOrgTest extends TestCase {
+
+    public static final String passageType = "passage";
+
+    public static final String verseType = "verse";
+
+    private BibleAPIResponseParser objectUnderTest;
+
+    @Override
+    public void setUp() throws Exception {
+        super.setUp();
+
+        objectUnderTest = new BibleAPIResponseParserBibleOrg();
+    }
 
     /**
      * Create test JSON data and expected spanned list
@@ -26,7 +38,7 @@ public class BibleAPIResponseParserTest extends TestCase {
      * @param successful Is success or failure expected?
      * @return JSON response text
      */
-    private String createJSON(List<Spanned> expectedList, String type, boolean successful) {
+    public static String createJSON(List<Spanned> expectedList, String type, boolean successful) {
         String jsonResponse = "";
 
         // Create test JSON data of type, complete if successful, otherwise with missing elements
@@ -49,16 +61,18 @@ public class BibleAPIResponseParserTest extends TestCase {
                 break;
         }
 
-        switch(type) {
-            case passageType:
-            // Add expected spanned list
-            expectedList.add(Html.fromHtml("<p class=\\\"p\\\"><sup id=\\\"John.3.16\\\" class=\\\"v\\\">16<\\/sup>For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.<\\/p>"));
-                break;
-            case verseType:
-                // Add expected spanned list
-                expectedList.add(Html.fromHtml("1 John 4:18 <sup>18</sup>There is no <em>fear</em> in love; but perfect love casteth out <em>fear</em>: because <em>fear</em> hath torment. He that feareth is not made perfect in love."));
-                expectedList.add(Html.fromHtml("Acts 2:43 <sup>43</sup>And <em>fear</em> came upon every soul: and many wonders and signs were done by the apostles."));
-                break;
+        if(expectedList != null) {
+            switch (type) {
+                case passageType:
+                    // Add expected spanned list
+                    expectedList.add(Html.fromHtml("<p class=\\\"p\\\"><sup id=\\\"John.3.16\\\" class=\\\"v\\\">16<\\/sup>For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.<\\/p>"));
+                    break;
+                case verseType:
+                    // Add expected spanned list
+                    expectedList.add(Html.fromHtml("1 John 4:18 <sup>18</sup>There is no <em>fear</em> in love; but perfect love casteth out <em>fear</em>: because <em>fear</em> hath torment. He that feareth is not made perfect in love."));
+                    expectedList.add(Html.fromHtml("Acts 2:43 <sup>43</sup>And <em>fear</em> came upon every soul: and many wonders and signs were done by the apostles."));
+                    break;
+            }
         }
 
         return jsonResponse;
@@ -71,10 +85,8 @@ public class BibleAPIResponseParserTest extends TestCase {
 
         jsonTextToParse = createJSON(expectedList, passageType, true);
 
-        BibleAPIResponseParser objectBeingTest = new BibleAPIResponseParser();
-
         try {
-            objectBeingTest.parseJSONToList(jsonTextToParse, actualList);
+            objectUnderTest.parseResponseToList(jsonTextToParse, actualList);
         } catch(Exception e) {
             e.printStackTrace();
         }
@@ -90,10 +102,8 @@ public class BibleAPIResponseParserTest extends TestCase {
 
         jsonTextToParse = createJSON(expectedList, passageType, false);
 
-        BibleAPIResponseParser objectBeingTest = new BibleAPIResponseParser();
-
         try {
-            objectBeingTest.parseJSONToList(jsonTextToParse, actualList);
+            objectUnderTest.parseResponseToList(jsonTextToParse, actualList);
         } catch(Exception e) {
             e.printStackTrace();
         }
@@ -109,10 +119,8 @@ public class BibleAPIResponseParserTest extends TestCase {
 
         jsonTextToParse = createJSON(expectedList, verseType, true);
 
-        BibleAPIResponseParser objectBeingTest = new BibleAPIResponseParser();
-
         try {
-            objectBeingTest.parseJSONToList(jsonTextToParse, actualList);
+            objectUnderTest.parseResponseToList(jsonTextToParse, actualList);
         } catch(Exception e) {
             e.printStackTrace();
         }
@@ -128,10 +136,8 @@ public class BibleAPIResponseParserTest extends TestCase {
 
         jsonTextToParse = createJSON(expectedList, verseType, false);
 
-        BibleAPIResponseParser objectBeingTest = new BibleAPIResponseParser();
-
         try {
-            objectBeingTest.parseJSONToList(jsonTextToParse, actualList);
+            objectUnderTest.parseResponseToList(jsonTextToParse, actualList);
         } catch(Exception e) {
             e.printStackTrace();
         }

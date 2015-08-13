@@ -50,4 +50,17 @@ dependencies {
     androidTestCompile 'com.android.support.test.espresso:espresso-core:2.2'
     // Set this dependency to build and run UI Automator tests
     androidTestCompile 'com.android.support.test.uiautomator:uiautomator-v18:2.1.1'
+
+    // the following is required to use Mockito and JUnit for your
+    // instrumentation unit tests on the JVM
+    androidTestCompile 'junit:junit:4.12'
+    androidTestCompile 'org.mockito:mockito-core:1.+'
+    androidTestCompile 'com.android.support.test:runner:0.3'
+    androidTestCompile "com.google.dexmaker:dexmaker:1.2"
+    androidTestCompile "com.google.dexmaker:dexmaker-mockito:1.2"
+
+    // the following is required to use Mockito and JUnit for your unit
+    // tests on the JVM
+    testCompile 'junit:junit:4.12'
+    testCompile 'org.mockito:mockito-core:1.+'
 }

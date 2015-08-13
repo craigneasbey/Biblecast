@@ -1,7 +1,7 @@
 package au.id.neasbey.biblecast;
 
-import android.support.v4.app.Fragment;
 import android.os.Bundle;
+import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -23,5 +23,5 @@ public class BibleSearchFragment extends Fragment {
         return inflater.inflate(R.layout.fragment_bible_search, container, false);
     }
 
-    // TODO move to fragment
+    // TODO BIBLECAST#6 - move to fragment
 }

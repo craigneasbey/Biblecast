@@ -4,6 +4,9 @@ Chromecast the Bible from Internet Web Services
 * Project Home
   * https://github.com/craigneasbey/Biblecast
 
+# Building
+Add Bible.org API token with a trailing colon to Biblecast/app/src/main/res/values/strings.xml, key api_auth.  For example: \<string name="api_auth"\>989879879jhljhlsjdfalsjbfebb2l3ib2lj3:\</string\>
+
 # Release Roadmap
 ## Release BIBLE-V1.0.0
 * search screen
@@ -49,3 +52,4 @@ Chromecast the Bible from Internet Web Services
 * http://stackoverflow.com/questions/496651/connecting-to-remote-url-which-requires-authentication-using-java
 * https://romannurik.github.io/AndroidAssetStudio/icons-launcher.html
 * http://inthecheesefactory.com/blog/how-to-upload-library-to-jcenter-maven-central-as-dependency/en
+* http://www.vogella.com/tutorials/Mockito/article.html#mockito_android

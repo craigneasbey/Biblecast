@@ -1,4 +1,4 @@
-package au.id.neasbey.biblecast.util;
+package au.id.neasbey.biblecast.API.BibleOrg;
 
 import android.text.Html;
 import android.text.Spanned;
@@ -9,12 +9,15 @@ import org.json.JSONObject;
 
 import java.util.List;
 
+import au.id.neasbey.biblecast.API.BibleAPIResponseParser;
+import au.id.neasbey.biblecast.API.BibleSearchAPIException;
+
 /**
  * Created by craigneasbey on 30/06/15.
  *
  * Bible API response parser utility
  */
-public class BibleAPIResponseParser {
+public class BibleAPIResponseParserBibleOrg extends BibleAPIResponseParser {
 
     private static final String responseKey = "response";
     private static final String searchKey = "search";
@@ -26,12 +29,25 @@ public class BibleAPIResponseParser {
     private static final String textKey = "text";
 
     /**
+     * Parse the response string
+     *
+     * @param responseString Response string
+     * @param resultList Result list after parsing the response string
+     * @throws BibleSearchAPIException
+     */
+    @Override
+    public void parseResponseToList(String responseString, List<Spanned> resultList) throws BibleSearchAPIException {
+        parseJSONToList(responseString, resultList);
+    }
+
+    /**
      * Parse the JSON response from bibles.org
-     * @param jsonString JSON response in format: http://bibles.org/pages/api/documentation/search
+     *
+     * @param jsonString  JSON response in format: http://bibles.org/pages/api/documentation/search
      * @param spannedList List of HTML elements
      * @throws Exception Allows JSON parse exceptions to be translated for the app
      */
-    public void parseJSONToList(String jsonString, List<Spanned> spannedList) throws Exception {
+    public void parseJSONToList(String jsonString, List<Spanned> spannedList) throws BibleSearchAPIException {
 
         try {
             boolean results = false;
@@ -43,15 +59,15 @@ public class BibleAPIResponseParser {
             JSONObject responseValues = jsonValues.optJSONObject(responseKey);
 
             // Get search values
-            if(responseValues != null) {
+            if (responseValues != null) {
                 JSONObject searchValues = responseValues.optJSONObject(searchKey);
 
                 // Get result values
-                if(searchValues != null) {
+                if (searchValues != null) {
                     JSONObject resultValues = searchValues.optJSONObject(resultKey);
 
                     // Get type value
-                    if(resultValues != null) {
+                    if (resultValues != null) {
                         String typeValue = resultValues.optString(typeKey);
 
                         // check type
@@ -71,19 +87,19 @@ public class BibleAPIResponseParser {
                 }
             }
 
-            if(!results) {
-                throw new Exception("No results found");
+            if (!results) {
+                throw new BibleSearchAPIException("No results found");
             }
         } catch (JSONException e) {
 
-            throw new Exception(e.getMessage());
+            throw new BibleSearchAPIException(e.getMessage());
         }
     }
 
     /**
      * Parses bible results with passages.  Adds each passage to the display list.
      *
-     * @param spannedList Display list
+     * @param spannedList    Display list
      * @param passagesValues JSONArray of passages
      * @return {@code Boolean.TRUE} if results exist, otherwise {@code Boolean.FALSE}
      * @throws JSONException
@@ -97,7 +113,7 @@ public class BibleAPIResponseParser {
 
             for (int i = 0; i < passagesLength; i++) {
                 if (first) {
-                    // Remove all entries from the list
+                    // Remove all entries from the list.  This will clear the results on the screen
                     spannedList.clear();
 
                     first = false;
@@ -109,7 +125,7 @@ public class BibleAPIResponseParser {
                     String passageText = passageValues.getString(textKey);
 
                     if (passageText != null) {
-                        // Add new results to the list, this will clear the results on the screen
+                        // Add new results to the list,
                         spannedList.add(Html.fromHtml(passageText));
 
                         results = true;
@@ -124,7 +140,7 @@ public class BibleAPIResponseParser {
     /**
      * Parses bible results with verses.  Adds each verse to the display list.
      *
-     * @param spannedList Display list
+     * @param spannedList  Display list
      * @param versesValues JSONArray of verses
      * @return {@code Boolean.TRUE} if results exist, otherwise {@code Boolean.FALSE}
      * @throws JSONException
@@ -138,7 +154,7 @@ public class BibleAPIResponseParser {
 
             for (int i = 0; i < versesLength; i++) {
                 if (first) {
-                    // Remove all entries from the list, this will clear the results on the screen
+                    // Remove all entries from the list, This will clear the results on the screen
                     spannedList.clear();
 
                     first = false;

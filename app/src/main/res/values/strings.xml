@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">Biblecast</string>
     <string name="api_url">https://bibles.org/v2/search.js</string>
-    <string name="api_token">add api token here</string>
+    <string name="api_auth"></string>
     <string name="action_settings">Settings</string>
     <string name="ok">OK</string>
     <string name="ui_wait">Please wait…</string>
