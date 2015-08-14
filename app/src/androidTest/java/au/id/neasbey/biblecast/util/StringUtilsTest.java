@@ -7,6 +7,8 @@ import java.util.Map;
 
 /**
  * Created by craigneasbey on 11/08/15.
+ *
+ * Test the string utilities
  */
 public class StringUtilsTest extends TestCase {
 

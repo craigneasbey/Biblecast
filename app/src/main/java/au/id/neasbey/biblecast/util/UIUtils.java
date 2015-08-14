@@ -11,6 +11,24 @@ import android.content.DialogInterface;
  */
 public class UIUtils {
 
+    private static Context context = null;
+
+    /**
+     * Allows configuration to be accessed across the application
+     *
+     * eg. {@code UIUtils.getContext().getString(R.string.api_no_url)}
+     *
+     * @param context Application context
+     */
+    public static void setContext(Context context)
+    {
+        UIUtils.context = context;
+    }
+
+    public static Context getContext() {
+        return UIUtils.context;
+    }
+
     /**
      * Displays an Error Dialog prompt
      *

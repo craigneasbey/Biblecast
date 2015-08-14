@@ -3,10 +3,14 @@ package au.id.neasbey.biblecast.API;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 
+import au.id.neasbey.biblecast.R;
+import au.id.neasbey.biblecast.util.UIUtils;
 import au.id.neasbey.biblecast.util.URLWrapper;
 
 /**
  * Created by craigneasbey on 11/08/15.
+ *
+ * Handles the HTTP connection to the Bible API
  */
 public abstract class BibleAPIConnectionHandler {
 
@@ -40,7 +44,7 @@ public abstract class BibleAPIConnectionHandler {
 
             authenticate();
         } catch (IOException io) {
-            throw new BibleSearchAPIException("API connection error: " + io.getMessage());
+            throw new BibleSearchAPIException(UIUtils.getContext().getString(R.string.api_error_connection) + io.getMessage());
         }
     }
 

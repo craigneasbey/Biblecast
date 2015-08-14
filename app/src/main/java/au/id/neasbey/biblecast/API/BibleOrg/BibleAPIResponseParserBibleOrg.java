@@ -11,11 +11,13 @@ import java.util.List;
 
 import au.id.neasbey.biblecast.API.BibleAPIResponseParser;
 import au.id.neasbey.biblecast.API.BibleSearchAPIException;
+import au.id.neasbey.biblecast.R;
+import au.id.neasbey.biblecast.util.UIUtils;
 
 /**
  * Created by craigneasbey on 30/06/15.
  *
- * Bible API response parser utility
+ * Bible.org Bible API response parser utility
  */
 public class BibleAPIResponseParserBibleOrg extends BibleAPIResponseParser {
 
@@ -88,7 +90,7 @@ public class BibleAPIResponseParserBibleOrg extends BibleAPIResponseParser {
             }
 
             if (!results) {
-                throw new BibleSearchAPIException("No results found");
+                throw new BibleSearchAPIException(UIUtils.getContext().getString(R.string.api_no_results));
             }
         } catch (JSONException e) {
 

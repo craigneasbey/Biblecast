@@ -8,18 +8,16 @@ import org.mockito.Mockito;
 
 import java.util.LinkedList;
 import java.util.List;
-import java.util.ListIterator;
 
 import au.id.neasbey.biblecast.API.BibleAPI;
-import au.id.neasbey.biblecast.API.BibleAPIConnectionHandler;
 import au.id.neasbey.biblecast.API.BibleAPIResponseHandler;
-import au.id.neasbey.biblecast.API.BibleAPIResponseParser;
-import au.id.neasbey.biblecast.util.URLWrapper;
 
 import static org.mockito.Mockito.when;
 
 /**
  * Created by craigneasbey on 11/08/15.
+ *
+ *Test the Bible.org BIBLE API
  */
 public class BibleAPIBibleOrgTest extends TestCase {
 
@@ -34,7 +32,7 @@ public class BibleAPIBibleOrgTest extends TestCase {
 
     private List<Spanned> createResultList() {
         List<Spanned> testList = new LinkedList<>();
-        BibleAPIResponseParserBibleOrgTest.createJSON(testList, BibleAPIResponseParserBibleOrgTest.passageType, true);
+        BibleAPIResponseParserBibleOrgTest.createJSONAndListHTML(testList, BibleAPIResponseParserBibleOrgTest.passageType, true);
 
         return testList;
     }

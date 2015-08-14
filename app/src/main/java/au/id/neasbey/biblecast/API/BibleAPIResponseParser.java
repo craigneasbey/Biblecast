@@ -14,8 +14,8 @@ public abstract class BibleAPIResponseParser {
     /**
      * Parse the response string
      *
-     * @param responseString
-     * @param resultList
+     * @param responseString Response string to parse
+     * @param resultList Resulting list after parsing the string
      * @throws BibleSearchAPIException
      */
     public abstract void parseResponseToList(String responseString, List<Spanned> resultList) throws BibleSearchAPIException;

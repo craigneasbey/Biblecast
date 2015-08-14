@@ -5,7 +5,6 @@ import android.text.Spanned;
 import junit.framework.TestCase;
 
 import org.mockito.Mockito;
-import org.mockito.internal.matchers.Any;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -16,18 +15,19 @@ import java.util.List;
 import au.id.neasbey.biblecast.API.BibleAPIConnectionHandler;
 import au.id.neasbey.biblecast.API.BibleAPIResponseHandler;
 import au.id.neasbey.biblecast.API.BibleAPIResponseParser;
+import au.id.neasbey.biblecast.util.StringUtils;
 
-import static org.mockito.Matchers.anyList;
-import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.when;
 
 /**
  * Created by craigneasbey on 11/08/15.
+ *
+ * Tests the Bible.org response handler
  */
 public class BibleAPIResponseHandlerBibleOrgTest extends TestCase {
 
     private String createResponse(List<Spanned> testList) {
-        return BibleAPIResponseParserBibleOrgTest.createJSON(testList, BibleAPIResponseParserBibleOrgTest.passageType, true);
+        return BibleAPIResponseParserBibleOrgTest.createJSONAndListHTML(testList, BibleAPIResponseParserBibleOrgTest.passageType, true);
     }
 
     public void testGetResultList() throws Exception {
@@ -37,7 +37,7 @@ public class BibleAPIResponseHandlerBibleOrgTest extends TestCase {
 
         List<Spanned> expectedList = new LinkedList<>();
         String responseString = createResponse(expectedList);
-        InputStream stream = new ByteArrayInputStream(responseString.getBytes("UTF-8"));
+        InputStream stream = new ByteArrayInputStream(responseString.getBytes(StringUtils.UTF_8));
 
         when(bibleAPIConnectionHandler.getHttpUrlConnection()).thenReturn(mockHttpURLConnection);
         when(mockHttpURLConnection.getResponseCode()).thenReturn(200);

@@ -6,8 +6,13 @@ import android.util.Log;
 
 import java.util.List;
 
+import au.id.neasbey.biblecast.R;
+import au.id.neasbey.biblecast.util.UIUtils;
+
 /**
  * Created by craigneasbey on 11/08/15.
+ *
+ * Search using the Bible API
  */
 public abstract class BibleAPI {
 
@@ -73,6 +78,11 @@ public abstract class BibleAPI {
         this.result = result;
     }
 
+    /**
+     * Performs the search(query) on specified in the URL
+     *
+     * @param bibleAPIResponseHandler Handler for response from the Bible API
+     */
     public void performRequest(BibleAPIResponseHandler bibleAPIResponseHandler) {
 
         try {
@@ -83,14 +93,16 @@ public abstract class BibleAPI {
     }
 
     /**
-     * Changed protected to public for testing
-     * @return
+     * Gets the URL for the Bible API request
+     * Note: Changed protected to public class access for testing
+     *
+     * @return Complete URL with encoded parameters
      * @throws BibleSearchAPIException
      */
     public String getRequestURL() throws BibleSearchAPIException {
 
         if (TextUtils.isEmpty(getURL())) {
-            throw new BibleSearchAPIException("No API URL specified");
+            throw new BibleSearchAPIException(UIUtils.getContext().getString(R.string.api_no_url));
         }
 
         StringBuilder requestText = new StringBuilder();
@@ -103,14 +115,26 @@ public abstract class BibleAPI {
         return requestText.toString();
     }
 
+    /**
+     * Checks the API parameters, then encodes them
+     *
+     * @return Encoded parameters for the API URL
+     * @throws BibleSearchAPIException
+     */
     public abstract String getRequestParameters() throws BibleSearchAPIException;
 
+    /**
+     * Checks if results are returned
+     * @return {@code Boolean.TRUE} if there are results, otherwise {@code Boolean.FALSE}
+      */
     public boolean hasResults() {
         return returnedList != null && !returnedList.isEmpty();
     }
 
     /**
      * Update the displayed list from the list returned from the web service
+     *
+     * @param resultList Results from the Bible API search
      */
     public void updateResultList(List<Spanned> resultList) {
         for (Spanned html : returnedList) {

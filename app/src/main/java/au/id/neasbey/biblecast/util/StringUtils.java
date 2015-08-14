@@ -13,6 +13,8 @@ import au.id.neasbey.biblecast.API.BibleSearchAPIException;
  */
 public class StringUtils {
 
+    public static final String UTF_8 = "UTF-8";
+
     /**
      * URL Encodes a map using the character set UTF-8
      *
@@ -43,13 +45,13 @@ public class StringUtils {
     /**
      * URL Encodes a String using the character set UTF-8
      *
-     * @param s
+     * @param s String to encode
      * @return Encoded string
      * @throws UnsupportedOperationException
      */
     public static String urlEncodeUTF8(String s) throws UnsupportedOperationException {
         try {
-            return URLEncoder.encode(s, "UTF-8");
+            return URLEncoder.encode(s, StringUtils.UTF_8);
         } catch (UnsupportedEncodingException e) {
             throw new UnsupportedOperationException(e);
         }

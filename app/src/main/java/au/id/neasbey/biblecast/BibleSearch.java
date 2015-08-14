@@ -46,6 +46,8 @@ public class BibleSearch extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        UIUtils.setContext(this);
         setContentView(R.layout.activity_bible_search);
 
         apiURL = getText(R.string.api_url).toString();

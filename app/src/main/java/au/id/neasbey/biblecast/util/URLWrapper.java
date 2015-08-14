@@ -8,7 +8,7 @@ import java.net.URL;
 /**
  * Created by craigneasbey on 13/08/15.
  *
- * This wrapper class allow mocking during testing
+ * This URL connection wrapper class allows mocking during testing
  */
 public class URLWrapper {
 

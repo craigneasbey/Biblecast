@@ -15,6 +15,8 @@ import static org.mockito.Mockito.when;
 
 /**
  * Created by craigneasbey on 11/08/15.
+ *
+ * Tests the Bible.org connection handler
  */
 public class BibleAPIConnectionHandlerBibleOrgTest extends TestCase {
 

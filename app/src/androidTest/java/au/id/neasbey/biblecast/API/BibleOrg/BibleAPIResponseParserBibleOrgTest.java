@@ -13,7 +13,7 @@ import au.id.neasbey.biblecast.API.BibleAPIResponseParser;
 /**
  * Created by craigneasbey on 11/08/15.
  *
- * Test the BibleAPIResponseParserBibleOrg
+ * Test the Bible,Org Bible API response parser from JSON to list
  */
 public class BibleAPIResponseParserBibleOrgTest extends TestCase {
 
@@ -38,7 +38,7 @@ public class BibleAPIResponseParserBibleOrgTest extends TestCase {
      * @param successful Is success or failure expected?
      * @return JSON response text
      */
-    public static String createJSON(List<Spanned> expectedList, String type, boolean successful) {
+    public static String createJSONAndListHTML(List<Spanned> expectedList, String type, boolean successful) {
         String jsonResponse = "";
 
         // Create test JSON data of type, complete if successful, otherwise with missing elements
@@ -83,7 +83,7 @@ public class BibleAPIResponseParserBibleOrgTest extends TestCase {
         List<Spanned> actualList = new LinkedList<>();
         String jsonTextToParse;
 
-        jsonTextToParse = createJSON(expectedList, passageType, true);
+        jsonTextToParse = createJSONAndListHTML(expectedList, passageType, true);
 
         try {
             objectUnderTest.parseResponseToList(jsonTextToParse, actualList);
@@ -100,7 +100,7 @@ public class BibleAPIResponseParserBibleOrgTest extends TestCase {
         List<Spanned> actualList = new LinkedList<>();
         String jsonTextToParse;
 
-        jsonTextToParse = createJSON(expectedList, passageType, false);
+        jsonTextToParse = createJSONAndListHTML(expectedList, passageType, false);
 
         try {
             objectUnderTest.parseResponseToList(jsonTextToParse, actualList);
@@ -117,7 +117,7 @@ public class BibleAPIResponseParserBibleOrgTest extends TestCase {
         List<Spanned> actualList = new LinkedList<>();
         String jsonTextToParse;
 
-        jsonTextToParse = createJSON(expectedList, verseType, true);
+        jsonTextToParse = createJSONAndListHTML(expectedList, verseType, true);
 
         try {
             objectUnderTest.parseResponseToList(jsonTextToParse, actualList);
@@ -134,7 +134,7 @@ public class BibleAPIResponseParserBibleOrgTest extends TestCase {
         List<Spanned> actualList = new LinkedList<>();
         String jsonTextToParse;
 
-        jsonTextToParse = createJSON(expectedList, verseType, false);
+        jsonTextToParse = createJSONAndListHTML(expectedList, verseType, false);
 
         try {
             objectUnderTest.parseResponseToList(jsonTextToParse, actualList);

@@ -10,8 +10,13 @@ import java.net.HttpURLConnection;
 import java.util.LinkedList;
 import java.util.List;
 
+import au.id.neasbey.biblecast.R;
+import au.id.neasbey.biblecast.util.UIUtils;
+
 /**
  * Created by craigneasbey on 11/08/15.
+ *
+ * Handles the the response from the Bible API
  */
 public abstract class BibleAPIResponseHandler {
 
@@ -56,6 +61,11 @@ public abstract class BibleAPIResponseHandler {
         return httpUrlConnection;
     }
 
+    /**
+     *
+     * @return
+     * @throws BibleSearchAPIException
+     */
     public List<Spanned> returnResultList() throws BibleSearchAPIException {
 
         resultList = new LinkedList<>();
@@ -77,7 +87,8 @@ public abstract class BibleAPIResponseHandler {
             Log.d(TAG, "Response code: " + responseCode);
             Log.d(TAG, "Response message: " + responseMessage);
         } catch (IOException ioe) {
-            throw new BibleSearchAPIException("API response error: " + ioe.getMessage());
+            throw new BibleSearchAPIException(UIUtils.getContext().getString(R.string.api_error_response) + ioe.getMessage());
+
         }
     }
 
@@ -115,7 +126,7 @@ public abstract class BibleAPIResponseHandler {
                     reader.close();
                 }
             } catch (Exception ex) {
-                Log.e(TAG, "Failed to close input reader: " + ex.getMessage());
+                Log.e(TAG, UIUtils.getContext().getString(R.string.api_error_close) + ex.getMessage());
             }
         }
 
