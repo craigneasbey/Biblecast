@@ -18,6 +18,7 @@ Add Bible.org API token with a trailing colon to Biblecast/app/src/main/res/valu
 ## Google Developer API
 * http://developer.android.com/develop/index.html
 * https://developers.google.com/cast/docs/developers
+* https://support.google.com/drive/answer/2881970?hl=en
 
 ## GIT
 ### Squash Commits
