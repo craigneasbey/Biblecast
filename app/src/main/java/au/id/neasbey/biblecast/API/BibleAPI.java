@@ -137,6 +137,8 @@ public abstract class BibleAPI {
      * @param resultList Results from the Bible API search
      */
     public void updateResultList(List<Spanned> resultList) {
+        resultList.clear();
+
         for (Spanned html : returnedList) {
             if(!TextUtils.isEmpty(html)) {
                 resultList.add(html);
