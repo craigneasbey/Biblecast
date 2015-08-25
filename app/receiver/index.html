@@ -25,26 +25,44 @@ limitations under the License.
 <head>
     <style type="text/css">
         body {
-        overflow:hidden;
+          overflow:hidden;
+          background-color:#000000;
         }
-        div{
-        height:720PX;
-        width:1280PX;
-        text-align:center;
-        border:0px solid silver;
-        display: table-cell;
-        vertical-align:middle;
-        color:#FFFFFF;
-        background-color:#000000;
-        font-weight:bold;
-        font-family:Verdana, Geneva, sans-serif;
-        font-size:40px;
+        .app {
+          height:100%;
+          width:100%;
+          text-align:center;
+          border:0px solid silver;
+          display: table-cell;
+          vertical-align:middle;
+          color:#FFFFFF;
+          background-color:#000000;
+          font-weight:bold;
+          font-family:Verdana, Geneva, sans-serif;
+          font-size:40px;
         }
     </style>
+    <script src="https://github.jspm.io/jmcriffey/bower-traceur-runtime@0.0.87/traceur-runtime.js"></script>
+    <script src="https://jspm.io/system@0.16.js"></script>
+    <script src="https://code.angularjs.org/2.0.0-alpha.34/angular2.dev.js"></script>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.min.js"></script>
+    <script>
+        $(document).ready(function (){
+            function (divId){
+                 $('html, body').animate({
+                     scrollTop: $("#" + divId).offset().top
+                 }, 0);
+            };
+        });
+    </script>
     <title>Biblecast</title>
 </head>
 <body>
+<script>System.import('app');</script>
+<DIV class="app">
+<my-app></my-app>
 <DIV id="message"></DIV>
+</DIV>
 <script type="text/javascript" src="//www.gstatic.com/cast/sdk/libs/receiver/2.0.0/cast_receiver.js"></script>
 <script type="text/javascript">
       if (typeof String.prototype.contains === 'undefined') {

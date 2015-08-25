@@ -297,6 +297,9 @@ public class BibleSearch extends AppCompatActivity {
 
                 // send results to cast receiver
                 // TODO convert list to JSON
+                // http://json2html.com/
+                // http://stackoverflow.com/questions/4189365/use-jquery-to-convert-json-array-to-html-bulleted-list
+                // http://stackoverflow.com/questions/8434579/how-to-parse-json-into-nested-html-list-strucuture
                 sendMessage(resultList.toString());
 
                 return true;
