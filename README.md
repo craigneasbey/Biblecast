@@ -5,7 +5,7 @@ Chromecast the Bible from Internet Web Services
   * https://github.com/craigneasbey/Biblecast
 
 # Building
-Add Bible.org API token with a trailing colon to Biblecast/app/src/main/res/values/strings.xml, key api_auth.  For example: \<string name="api_auth"\>989879879jhljhlsjdfalsjbfebb2l3ib2lj3:\</string\>
+Add Bible.org API token with a trailing colon to Biblecast/app/src/main/res/values/strings.xml, key api_username.  For example: \<string name="api_username"\>989879879jhljhlsjdfalsjbfebb2l3ib2lj3\</string\>
 
 # Release Roadmap
 * https://github.com/craigneasbey/Biblecast/issues?q=is%3Aopen+is%3Aissue+label%3Aenhancement

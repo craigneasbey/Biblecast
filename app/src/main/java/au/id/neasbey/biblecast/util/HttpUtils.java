@@ -11,7 +11,7 @@ import au.id.neasbey.biblecast.API.BibleSearchAPIException;
  *
  * Helpful String utilities
  */
-public class StringUtils {
+public class HttpUtils {
 
     public static final String UTF_8 = "UTF-8";
 
@@ -51,19 +51,9 @@ public class StringUtils {
      */
     public static String urlEncodeUTF8(String s) throws UnsupportedOperationException {
         try {
-            return URLEncoder.encode(s, StringUtils.UTF_8);
+            return URLEncoder.encode(s, HttpUtils.UTF_8);
         } catch (UnsupportedEncodingException e) {
             throw new UnsupportedOperationException(e);
         }
-    }
-
-    /**
-     * Base64 encodes a string for HTTP authentication
-     *
-     * @param bytes Authentication string
-     * @return Encoded property string
-     */
-    public static String generateHttpAuthentication(byte[] bytes) {
-        return "Basic " + new String(android.util.Base64.encode(bytes, android.util.Base64.NO_WRAP));
     }
 }

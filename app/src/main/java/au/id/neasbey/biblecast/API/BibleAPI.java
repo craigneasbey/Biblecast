@@ -8,6 +8,7 @@ import java.util.List;
 
 import au.id.neasbey.biblecast.R;
 import au.id.neasbey.biblecast.util.UIUtils;
+import au.id.neasbey.biblecast.util.URLWrapper;
 
 /**
  * Created by craigneasbey on 11/08/15.
@@ -18,78 +19,50 @@ public abstract class BibleAPI {
 
     private static final String TAG = BibleAPI.class.getSimpleName();
 
+    private BibleAPIConnectionHandler bibleAPIConnectionHandler;
+
+    private BibleAPIResponseParser bibleAPIResponseParser;
+
     private String query;
 
     private String URL;
 
-    private String auth;
+    private String username;
+
+    private String password;
 
     private String versions;
 
     private List<Spanned> returnedList;
 
-    private String result;
-
-    public String getQuery() {
-        return query;
-    }
-
-    public void setQuery(String query) {
-        this.query = query;
-    }
-
-    public String getURL() {
-        return URL;
-    }
-
-    public void setURL(String URL) {
-        this.URL = URL;
-    }
-
-    public String getAuth() {
-        return auth;
-    }
-
-    public void setAuth(String auth) {
-        this.auth = auth;
-    }
-
-    public String getVersions() {
-        return versions;
-    }
-
-    public void setVersions(String versions) {
-        this.versions = versions;
-    }
-
-    public List<Spanned> getReturnedList() {
-        return returnedList;
-    }
-
-    protected void setReturnedList(List<Spanned> returnedList) {
-        this.returnedList = returnedList;
-    }
-
-    public String getResult() {
-        return result;
-    }
-
-    protected void setResult(String result) {
-        this.result = result;
+    public BibleAPI(BibleAPIConnectionHandler bibleAPIConnectionHandler, BibleAPIResponseParser bibleAPIResponseParser) {
+        this.bibleAPIConnectionHandler = bibleAPIConnectionHandler;
+        this.bibleAPIResponseParser = bibleAPIResponseParser;
     }
 
     /**
-     * Performs the search(query) on specified in the URL
+     * Performs the Bible API query
      *
-     * @param bibleAPIResponseHandler Handler for response from the Bible API
+     * @return Error string, otherwise null
      */
-    public void performRequest(BibleAPIResponseHandler bibleAPIResponseHandler) {
+    public String query() {
 
         try {
-            setReturnedList(bibleAPIResponseHandler.returnResultList());
+            // create a connection to the Bible API and perform the query
+            URLWrapper urlWrapper = new URLWrapper(getRequestURL());
+            getBibleAPIConnectionHandler().connect(urlWrapper);
+
+            // get the Bible API response
+            BibleAPIResponse bibleAPIResponse = getBibleAPIConnectionHandler().getResponse();
+
+            // parse the Bible API response
+            getBibleAPIResponseParser().parseResponseStatus(bibleAPIResponse.getResponseCode(), bibleAPIResponse.getResponseMessage());
+            setReturnedList(getBibleAPIResponseParser().parseResponseDataToList(bibleAPIResponse.getResponseData()));
         } catch (BibleSearchAPIException bsae) {
-            setResult(bsae.getMessage());
+            return bsae.getMessage();
         }
+
+        return null;
     }
 
     /**
@@ -125,6 +98,7 @@ public abstract class BibleAPI {
 
     /**
      * Checks if results are returned
+     *
      * @return {@code Boolean.TRUE} if there are results, otherwise {@code Boolean.FALSE}
       */
     public boolean hasResults() {
@@ -145,7 +119,59 @@ public abstract class BibleAPI {
             }
         }
 
-        // free memory
+        // ensure memory is freed
         setReturnedList(null);
+    }
+
+    public String getQuery() {
+        return query;
+    }
+
+    public void setQuery(String query) {
+        this.query = query;
+    }
+
+    public String getURL() {
+        return URL;
+    }
+
+    public void setURL(String URL) {
+        this.URL = URL;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public String getVersions() {
+        return versions;
+    }
+
+    public void setVersions(String versions) {
+        this.versions = versions;
+    }
+
+    protected void setReturnedList(List<Spanned> returnedList) {
+        this.returnedList = returnedList;
+    }
+
+    protected BibleAPIConnectionHandler getBibleAPIConnectionHandler() {
+        return bibleAPIConnectionHandler;
+    }
+
+    protected BibleAPIResponseParser getBibleAPIResponseParser() {
+        return bibleAPIResponseParser;
     }
 }

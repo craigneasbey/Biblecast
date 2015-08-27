@@ -7,13 +7,11 @@ import java.util.Map;
 
 import au.id.neasbey.biblecast.API.BibleAPI;
 import au.id.neasbey.biblecast.API.BibleAPIConnectionHandler;
-import au.id.neasbey.biblecast.API.BibleAPIResponseHandler;
 import au.id.neasbey.biblecast.API.BibleAPIResponseParser;
 import au.id.neasbey.biblecast.API.BibleSearchAPIException;
 import au.id.neasbey.biblecast.R;
+import au.id.neasbey.biblecast.util.HttpUtils;
 import au.id.neasbey.biblecast.util.UIUtils;
-import au.id.neasbey.biblecast.util.URLWrapper;
-import au.id.neasbey.biblecast.util.StringUtils;
 
 /**
  * Created by craigneasbey on 11/08/15.
@@ -27,6 +25,20 @@ public class BibleAPIBibleOrg extends BibleAPI {
     private static final String queryParameter = "query";
 
     private static final String versionParameter = "version";
+
+    public BibleAPIBibleOrg(BibleAPIConnectionHandler bibleAPIConnectionHandler, BibleAPIResponseParser bibleAPIResponseParser) {
+        super(bibleAPIConnectionHandler,  bibleAPIResponseParser);
+    }
+
+    @Override
+    public String query() {
+
+        // pass authentication to connection handler
+        getBibleAPIConnectionHandler().setUsername(getUsername());
+        getBibleAPIConnectionHandler().setPassword(getPassword());
+
+        return super.query();
+    }
 
     /**
      * Checks the API parameters, then encodes them
@@ -49,6 +61,6 @@ public class BibleAPIBibleOrg extends BibleAPI {
         parameters.put(queryParameter, getQuery());
         parameters.put(versionParameter, getVersions());
 
-        return "?" + StringUtils.urlEncodeUTF8(parameters);
+        return "?" + HttpUtils.urlEncodeUTF8(parameters);
     }
 }

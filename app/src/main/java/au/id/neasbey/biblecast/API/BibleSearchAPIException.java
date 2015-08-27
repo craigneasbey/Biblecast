@@ -2,6 +2,8 @@ package au.id.neasbey.biblecast.API;
 
 /**
  * Created by craigneasbey on 11/08/15.
+ *
+ * Exception holder for Bible Search API
  */
 public class BibleSearchAPIException extends Exception {
 

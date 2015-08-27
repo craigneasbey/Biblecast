@@ -12,11 +12,20 @@ import java.util.List;
 public abstract class BibleAPIResponseParser {
 
     /**
+     * Parse the response status
+     *
+     * @param responseCode HTTP response status code
+     * @param responseMessage HTTP response status message
+     * @throws BibleSearchAPIException
+     */
+    public abstract void parseResponseStatus(int responseCode, String responseMessage) throws BibleSearchAPIException;
+
+    /**
      * Parse the response string
      *
      * @param responseString Response string to parse
-     * @param resultList Resulting list after parsing the string
+     * @return Resulting list after parsing the string
      * @throws BibleSearchAPIException
      */
-    public abstract void parseResponseToList(String responseString, List<Spanned> resultList) throws BibleSearchAPIException;
+    public abstract List<Spanned> parseResponseDataToList(String responseString) throws BibleSearchAPIException;
 }

@@ -22,15 +22,11 @@ import java.util.List;
 
 import au.id.neasbey.biblecast.API.BibleAPI;
 import au.id.neasbey.biblecast.API.BibleAPIConnectionHandler;
-import au.id.neasbey.biblecast.API.BibleAPIResponseHandler;
 import au.id.neasbey.biblecast.API.BibleAPIResponseParser;
 import au.id.neasbey.biblecast.API.BibleOrg.BibleAPIBibleOrg;
 import au.id.neasbey.biblecast.API.BibleOrg.BibleAPIConnectionHandlerBibleOrg;
-import au.id.neasbey.biblecast.API.BibleOrg.BibleAPIResponseHandlerBibleOrg;
 import au.id.neasbey.biblecast.API.BibleOrg.BibleAPIResponseParserBibleOrg;
-import au.id.neasbey.biblecast.API.BibleSearchAPIException;
 import au.id.neasbey.biblecast.util.UIUtils;
-import au.id.neasbey.biblecast.util.URLWrapper;
 
 /**
  * Created by craigneasbey on 30/06/15.
@@ -41,7 +37,8 @@ public class BibleSearch extends AppCompatActivity {
 
     private static final String TAG = BibleSearch.class.getSimpleName();
     private String apiURL;
-    private String apiAuth;
+    private String apiUsername;
+    private String apiPassword;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,7 +48,8 @@ public class BibleSearch extends AppCompatActivity {
         setContentView(R.layout.activity_bible_search);
 
         apiURL = getText(R.string.api_url).toString();
-        apiAuth = getText(R.string.api_auth).toString();
+        apiUsername = getText(R.string.api_username).toString();
+        apiPassword = getText(R.string.api_password).toString();
         handleIntent(getIntent());
     }
 
@@ -70,7 +68,7 @@ public class BibleSearch extends AppCompatActivity {
     private void handleIntent(Intent intent) {
         if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
             String query = intent.getStringExtra(SearchManager.QUERY);
-            new BibleAPITask().execute(query, apiURL, apiAuth);
+            new BibleAPITask().execute(query, apiURL, apiUsername, apiPassword);
         }
     }
 
@@ -144,38 +142,18 @@ public class BibleSearch extends AppCompatActivity {
          */
         private String queryBibleAPI(String... params) {
 
-            bibleAPI = new BibleAPIBibleOrg();
-            bibleAPI.setQuery(params[0]);
-            bibleAPI.setURL(params[1]);
-            bibleAPI.setAuth(params[2]);
-            bibleAPI.setVersions(bibleVersions);
-
-            try {
-                bibleAPI.performRequest(createBibleAPIResponseHandler());
-            } catch (BibleSearchAPIException bsae) {
-                return bsae.getMessage();
-            }
-
-            return bibleAPI.getResult();
-        }
-
-        /**
-         * Create a connection to the Bible API and pass it to the Bible API Response Handler.
-         * Provide the response parser to assist in the conversion to display result
-         *
-         * @return
-         * @throws BibleSearchAPIException
-         */
-        private BibleAPIResponseHandler createBibleAPIResponseHandler() throws BibleSearchAPIException {
-
-            URLWrapper urlWrapper = new URLWrapper(bibleAPI.getRequestURL());
+            // Specifies Bible.org Bible API
             BibleAPIConnectionHandler bibleAPIConnectionHandler = new BibleAPIConnectionHandlerBibleOrg();
-            bibleAPIConnectionHandler.setAuth(bibleAPI.getAuth());
-            bibleAPIConnectionHandler.connect(urlWrapper);
-
             BibleAPIResponseParser bibleAPIResponseParser = new BibleAPIResponseParserBibleOrg();
 
-            return new BibleAPIResponseHandlerBibleOrg(bibleAPIConnectionHandler, bibleAPIResponseParser);
+            bibleAPI = new BibleAPIBibleOrg(bibleAPIConnectionHandler, bibleAPIResponseParser);
+            bibleAPI.setQuery(params[0]);
+            bibleAPI.setURL(params[1]);
+            bibleAPI.setUsername(params[2]);
+            bibleAPI.setPassword(params[3]);
+            bibleAPI.setVersions(bibleVersions);
+
+            return bibleAPI.query();
         }
 
         protected void onPostExecute(String result) {
@@ -195,8 +173,8 @@ public class BibleSearch extends AppCompatActivity {
 
         /**
          * Checks result response test and results to see if the query was successful
-         * @param result
-         * @return
+         * @param result Response test
+         * @return {@code Boolean.TRUE} if results exist, otherwise {@code Boolean.FALSE}
          */
         private boolean isResultSuccessful(String result) {
 

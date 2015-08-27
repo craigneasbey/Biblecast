@@ -2,7 +2,6 @@ package au.id.neasbey.biblecast.util;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
 
 /**
@@ -20,5 +19,9 @@ public class URLWrapper {
 
     public HttpURLConnection openConnection() throws IOException {
         return ((HttpURLConnection)new URL(urlString).openConnection());
+    }
+
+    public String getUrlString() {
+        return urlString;
     }
 }
