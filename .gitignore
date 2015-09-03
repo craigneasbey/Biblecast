@@ -3,3 +3,4 @@
 /build
 /.navigation
 local.properties
+*.iml
