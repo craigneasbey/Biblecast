@@ -242,25 +242,6 @@ public class BibleSearch extends AppCompatActivity {
             return bibleAPI.query();
         }
 
-        /**
-         * Create a connection to the Bible API and pass it to the Bible API Response Handler.
-         * Provide the response parser to assist in the conversion to display result
-         *
-         * @return
-         * @throws BibleSearchAPIException
-         */
-        private BibleAPIResponseHandler createBibleAPIResponseHandler() throws BibleSearchAPIException {
-
-            URLWrapper urlWrapper = new URLWrapper(bibleAPI.getRequestURL());
-            BibleAPIConnectionHandler bibleAPIConnectionHandler = new BibleAPIConnectionHandlerBibleOrg();
-            bibleAPIConnectionHandler.setAuth(bibleAPI.getAuth());
-            bibleAPIConnectionHandler.connect(urlWrapper);
-
-            BibleAPIResponseParser bibleAPIResponseParser = new BibleAPIResponseParserBibleOrg();
-
-            return new BibleAPIResponseHandlerBibleOrg(bibleAPIConnectionHandler, bibleAPIResponseParser);
-        }
-
         protected void onPostExecute(String result) {
 
             // Close progress dialog
