@@ -2,11 +2,18 @@ package au.id.neasbey.biblecast.API.BibleOrg;
 
 import android.text.Html;
 import android.text.Spanned;
+import android.util.Xml;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.xmlpull.v1.XmlPullParser;
+import org.xmlpull.v1.XmlPullParserException;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -14,6 +21,7 @@ import au.id.neasbey.biblecast.API.BibleAPIResponse;
 import au.id.neasbey.biblecast.API.BibleAPIResponseParser;
 import au.id.neasbey.biblecast.API.BibleSearchAPIException;
 import au.id.neasbey.biblecast.R;
+import au.id.neasbey.biblecast.util.HttpUtils;
 import au.id.neasbey.biblecast.util.UIUtils;
 
 /**
@@ -142,10 +150,12 @@ public class BibleAPIResponseParserBibleOrg extends BibleAPIResponseParser {
                     String passageText = passageValues.getString(textKey);
 
                     if (passageText != null) {
-                        // Add new results to the list,
-                        resultList.add(Html.fromHtml(passageText));
-
                         results = true;
+
+                        // Add new results to the list,
+                        for(String paragraph : passageText.split("\\n")) {
+                            resultList.add(Html.fromHtml(paragraph));
+                        }
                     }
                 }
             }
