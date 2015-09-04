@@ -24,13 +24,15 @@ limitations under the License.
 <html>
 <head>
     <style type="text/css">
-        /*body {
-            overflow:hidden;
-        }*/
+        body {
+            /* overflow:hidden; */
+            background-color: #000000;
+        }
         div{
-            height:720PX;
-            width:1280PX;
-            text-align:center;
+            /* height:720PX; */
+            /* width:1280PX; */
+            width: 100%;
+            /* text-align:center; */
             border:0px solid silver;
             display: table-cell;
             vertical-align:middle;
@@ -41,7 +43,7 @@ limitations under the License.
             font-size:40px;
         }
         .paragraph {
-            width: 100%;
+            width: 90%;
             display: inline-block;
             clear: both;
         }
@@ -63,6 +65,7 @@ limitations under the License.
         cast.receiver.logger.setLevelValue(0);
         window.castReceiverManager = cast.receiver.CastReceiverManager.getInstance();
         console.log('Starting Receiver Manager');
+        console.log(screenSize());
 
         // handler for the 'ready' event
         castReceiverManager.onReady = function(event) {
@@ -87,13 +90,13 @@ limitations under the License.
         // create a CastMessageBus to handle messages for a custom namespace
         window.messageBus =
           window.castReceiverManager.getCastMessageBus(
-              'urn:x-cast:au.id.neasbey.biblecast');
+              'urn:x-cast:au.id.neasbey.biblecast', cast.receiver.CastMessageBus.MessageType.JSON);
 
         // handler for the CastMessageBus message event
         window.messageBus.onMessage = function(event) {
           console.log('Message [' + event.senderId + ']: ' + event.data);
 
-          var jsonData = JSON.parse(event.data);
+          var jsonData = event.data;
 
           // check if the event is a gesture
           if (jsonData.gesture !== undefined) {
@@ -119,6 +122,7 @@ limitations under the License.
                     //html += elements[i];
                     //displayText(html);
                 }
+                window.castReceiverManager.setApplicationState();
           } else if (jsonData.display !== undefined) {
                 displayText(jsonData.display);
           } else {
@@ -146,7 +150,6 @@ limitations under the License.
         console.log(id + ":" + html);
         $('#message').append("<div id='" + id + "' class='paragraph'>" + html + "</div>");
         //document.getElementById("message").innerHTML="<div id='" + id + "' class='paragraph'>" + html + "</div>";
-        window.castReceiverManager.setApplicationState(html);
       };
 
       // utility function to display the text message in the input field
@@ -163,6 +166,15 @@ limitations under the License.
              scrollTop: $("#" + divId).offset().top
          }, 1000);
       };
+
+      function screenSize() {
+        var txt = "";
+        txt += "Total width/height: " + screen.width + "*" + screen.height + "\n";
+        txt += "Available width/height: " + screen.availWidth + "*" + screen.availHeight + "\n";
+        txt += "Color depth: " + screen.colorDepth + "\n";
+        txt += "Color resolution: " + screen.pixelDepth + "\n";
+        return txt;
+      }
 
 </script>
 </body>
