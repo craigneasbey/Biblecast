@@ -1,7 +1,11 @@
 package au.id.neasbey.biblecast.util;
 
+import android.text.Html;
+import android.text.Spanned;
+
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.util.List;
 import java.util.Map;
 
 import au.id.neasbey.biblecast.API.BibleSearchAPIException;
@@ -55,5 +59,39 @@ public class HttpUtils {
         } catch (UnsupportedEncodingException e) {
             throw new UnsupportedOperationException(e);
         }
+    }
+
+    /**
+     * Converts spanned list to JSON
+     * @param elementsList HTML list
+     * @return JSON string
+     */
+    public static String listToJSON(List<Spanned> elementsList) {
+
+        StringBuilder sb = new StringBuilder();
+
+        if (elementsList != null && !elementsList.isEmpty()) {
+            boolean first = true;
+
+            sb.append("{ \"elements\" : [ \"");
+
+            for(Spanned element : elementsList) {
+                if(first) {
+                    first = false;
+                } else {
+                    sb.append("\", \"");
+                }
+
+                sb.append(spannedToJSON(element));
+            }
+
+            sb.append("\" ] }");
+        }
+
+        return sb.toString();
+    }
+
+    public static String spannedToJSON(Spanned element) {
+        return Html.toHtml(element).trim().replace("\"","\\\"");
     }
 }

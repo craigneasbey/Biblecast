@@ -42,6 +42,7 @@ import au.id.neasbey.biblecast.API.BibleAPIResponseParser;
 import au.id.neasbey.biblecast.API.BibleOrg.BibleAPIBibleOrg;
 import au.id.neasbey.biblecast.API.BibleOrg.BibleAPIConnectionHandlerBibleOrg;
 import au.id.neasbey.biblecast.API.BibleOrg.BibleAPIResponseParserBibleOrg;
+import au.id.neasbey.biblecast.util.HttpUtils;
 import au.id.neasbey.biblecast.util.UIUtils;
 
 /**
@@ -198,16 +199,16 @@ public class BibleSearch extends AppCompatActivity {
 
                     Log.d(TAG," onScroll firstVisibleItem: " + firstVisibleItem + " visibleItemCount: " + visibleItemCount + " totalItemCount: " + totalItemCount);
 
-                    if(mLastFirstVisibleItem < firstVisibleItem)
+                    if(firstVisibleItem > mLastFirstVisibleItem)
                     {
-                        Log.d(TAG,"SCROLLING DOWN");
-                        sendMessage("#GESTURE#SCROLL_DOWN#");
+                        Log.d(TAG,"Scrolling down");
+                        sendMessage("{ \"gesture\" : \"scroll_down\", \"element\" : \"" + firstVisibleItem + "\" }");
                     }
 
-                    if(mLastFirstVisibleItem > firstVisibleItem)
+                    if(firstVisibleItem < mLastFirstVisibleItem)
                     {
-                        Log.d(TAG,"SCROLLING UP");
-                        sendMessage("#GESTURE#SCROLL_UP#");
+                        Log.d(TAG, "Scrolling up");
+                        sendMessage("{ \"gesture\" : \"scroll_up\", \"element\" : \"" + firstVisibleItem + "\" }");
                     }
 
                     mLastFirstVisibleItem = firstVisibleItem;
@@ -281,7 +282,7 @@ public class BibleSearch extends AppCompatActivity {
                 // http://json2html.com/
                 // http://stackoverflow.com/questions/4189365/use-jquery-to-convert-json-array-to-html-bulleted-list
                 // http://stackoverflow.com/questions/8434579/how-to-parse-json-into-nested-html-list-strucuture
-                sendMessage(resultList.toString());
+                sendMessage(HttpUtils.listToJSON(resultList));
 
                 return true;
             } else {
@@ -479,7 +480,7 @@ public class BibleSearch extends AppCompatActivity {
                                         // set the initial instructions on the receiver if no results exist
                                         if (resultsExist) {
                                             // TODO convert list to JSON
-                                            sendMessage(resultList.toString());
+                                            sendMessage(HttpUtils.listToJSON(resultList));
                                         } else {
                                             sendMessage(getString(R.string.instructions));
                                         }

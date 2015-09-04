@@ -24,28 +24,36 @@ limitations under the License.
 <html>
 <head>
     <style type="text/css">
-        body {
-        overflow:hidden;
-        }
+        /*body {
+            overflow:hidden;
+        }*/
         div{
-        height:720PX;
-        width:1280PX;
-        text-align:center;
-        border:0px solid silver;
-        display: table-cell;
-        vertical-align:middle;
-        color:#FFFFFF;
-        background-color:#000000;
-        font-weight:bold;
-        font-family:Verdana, Geneva, sans-serif;
-        font-size:40px;
+            height:720PX;
+            width:1280PX;
+            text-align:center;
+            border:0px solid silver;
+            display: table-cell;
+            vertical-align:middle;
+            color:#FFFFFF;
+            background-color:#000000;
+            font-weight:bold;
+            font-family:Verdana, Geneva, sans-serif;
+            font-size:40px;
         }
+        .paragraph {
+            width: 100%;
+            display: inline-block;
+            clear: both;
+        }
+
     </style>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.min.js"></script>
     <title>Biblecast</title>
 </head>
 <body>
 <DIV id="message"></DIV>
-<script type="text/javascript" src="//www.gstatic.com/cast/sdk/libs/receiver/2.0.0/cast_receiver.js"></script>
+<script type="text/javascript"
+        src="//www.gstatic.com/cast/sdk/libs/receiver/2.0.0/cast_receiver.js"></script>
 <script type="text/javascript">
       if (typeof String.prototype.contains === 'undefined') {
         String.prototype.contains = function(it) { return this.indexOf(it) != -1; };
@@ -85,18 +93,34 @@ limitations under the License.
         window.messageBus.onMessage = function(event) {
           console.log('Message [' + event.senderId + ']: ' + event.data);
 
+          var jsonData = JSON.parse(event.data);
+
           // check if the event is a gesture
-          if(event.data.contains("#GESTURE#")) {
-            // handle gesture
-            if(event.data.contains("SCROLL_UP")) {
-                // scroll up the results list
-                // TODO
-                displayText("UP");
-            } else {
-                // scroll down the results list
-                // TODO
-                displayText("DOWN");
-            }
+          if (jsonData.gesture !== undefined) {
+                if (jsonData.element !== undefined) {
+                    if(jsonData.gesture.contains("scroll_up")) {
+                        // scroll up the results list
+                        // TODO
+                        //displayText("Scroll up to element: " + jsonData.element);
+                        scrollTo(jsonData.element);
+                    } else if(jsonData.gesture.contains("scroll_down")) {
+                        // scroll down the results list
+                        // TODO
+                        //displayText("Scroll down to element: " + jsonData.element);
+                        scrollTo(jsonData.element);
+                    }
+                }
+          } else if (jsonData.elements !== undefined) {
+                var elements = jsonData.elements;
+                var html = "";
+                clearMessage();
+                for(var i=0; i < elements.length; i++) {
+                    amendMessage(i, elements[i]);
+                    //html += elements[i];
+                    //displayText(html);
+                }
+          } else if (jsonData.display !== undefined) {
+                displayText(jsonData.display);
           } else {
             // display the message from the sender
             displayText(event.data);
@@ -112,12 +136,34 @@ limitations under the License.
         console.log('Receiver Manager started');
       };
 
+      // utility function to clean the message div
+      function clearMessage() {
+        $('#message').html("");
+      };
+
+      // utility function to amend to the message div
+      function amendMessage(id, html) {
+        console.log(id + ":" + html);
+        $('#message').append("<div id='" + id + "' class='paragraph'>" + html + "</div>");
+        //document.getElementById("message").innerHTML="<div id='" + id + "' class='paragraph'>" + html + "</div>";
+        window.castReceiverManager.setApplicationState(html);
+      };
+
       // utility function to display the text message in the input field
       function displayText(text) {
         console.log(text);
         document.getElementById("message").innerHTML=text;
         window.castReceiverManager.setApplicationState(text);
       };
-    </script>
+
+      // scroll to the current element
+      function scrollTo(divId){
+         console.log(divId);
+         $('html, body').animate({
+             scrollTop: $("#" + divId).offset().top
+         }, 1000);
+      };
+
+</script>
 </body>
 </html>

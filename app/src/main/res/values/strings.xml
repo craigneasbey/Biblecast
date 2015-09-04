@@ -22,5 +22,5 @@
     <string name="ok">OK</string>
     <!-- Google Cast -->
     <string name="media_route_menu_title">View on&#8230;</string>
-    <string name="instructions">Please search</string>
+    <string name="instructions">{ \"display\" : \"Please search\" }</string>
 </resources>

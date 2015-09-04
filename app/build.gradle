@@ -28,7 +28,8 @@ android {
     buildTypes {
         debug {
             debuggable true
-            testCoverageEnabled true
+            // https://code.google.com/p/android/issues/detail?id=123771
+            //testCoverageEnabled true
         }
         release {
             minifyEnabled true
