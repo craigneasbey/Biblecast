@@ -32,6 +32,9 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Status;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
@@ -42,6 +45,7 @@ import au.id.neasbey.biblecast.API.BibleAPIResponseParser;
 import au.id.neasbey.biblecast.API.BibleOrg.BibleAPIBibleOrg;
 import au.id.neasbey.biblecast.API.BibleOrg.BibleAPIConnectionHandlerBibleOrg;
 import au.id.neasbey.biblecast.API.BibleOrg.BibleAPIResponseParserBibleOrg;
+import au.id.neasbey.biblecast.API.BibleSearchAPIException;
 import au.id.neasbey.biblecast.util.HttpUtils;
 import au.id.neasbey.biblecast.util.UIUtils;
 
@@ -249,12 +253,22 @@ public class BibleSearch extends AppCompatActivity {
             progressDialog.dismiss();
 
             if (isResultSuccessful(result)) {
+                resultsExist = true;
+                bibleAPI.updateResultList(resultList);
+
                 // Notify the list adapter the data has changed
                 resultsAdapter.notifyDataSetChanged();
+
+                // record result list view dimensions
+                resetResultsListView();
+                updateResultsListLayout();
 
                 // Hide the entry keyboard
                 SearchView searchView = (SearchView) findViewById(R.id.searchView);
                 searchView.clearFocus();
+
+                // send results to cast receiver
+                sendMessage(HttpUtils.listToJSON(resultList));
             }
         }
 
@@ -273,16 +287,6 @@ public class BibleSearch extends AppCompatActivity {
             } else if (TextUtils.isEmpty(result) && bibleAPI.hasResults()) {
                 // If result test is empty and there are results, update the results list displayed
                 Log.d(TAG, "Request Successful");
-
-                resultsExist = true;
-                bibleAPI.updateResultList(resultList);
-
-                // send results to cast receiver
-                // TODO convert list to JSON
-                // http://json2html.com/
-                // http://stackoverflow.com/questions/4189365/use-jquery-to-convert-json-array-to-html-bulleted-list
-                // http://stackoverflow.com/questions/8434579/how-to-parse-json-into-nested-html-list-strucuture
-                sendMessage(HttpUtils.listToJSON(resultList));
 
                 return true;
             } else {
@@ -331,8 +335,26 @@ public class BibleSearch extends AppCompatActivity {
         mSelectedDevice = null;
         mWaitingForReconnect = false;
         mSessionId = null;
+
+        resetResultsListView();
     }
 
+    private void resetResultsListView() {
+        BibleSearchFragment bibleSearchFragment = (BibleSearchFragment) getSupportFragmentManager().findFragmentById(R.id.fragment);
+
+        if (bibleSearchFragment != null) {
+            bibleSearchFragment.resetResultsListView();
+        }
+    }
+
+    private void updateResultsListLayout() {
+        BibleSearchFragment bibleSearchFragment = (BibleSearchFragment) getSupportFragmentManager().findFragmentById(R.id.fragment);
+
+        if (bibleSearchFragment != null) {
+            bibleSearchFragment.updateResultsListLayout();
+            //bibleSearchFragment.testing();
+        }
+    }
 
     /**
      * Send a text message to the receiver
@@ -358,6 +380,71 @@ public class BibleSearch extends AppCompatActivity {
         } else {
             Toast.makeText(BibleSearch.this, message, Toast.LENGTH_SHORT).show();
         }
+    }
+
+    private void parseMessage(String message) {
+
+        if(!TextUtils.isEmpty(message)) {
+
+            try {
+                float ratio = parseMessageForDimensions(message);
+
+                // Change results dimensions to suit cast device.  Ensures UX is consistent.
+                BibleSearchFragment bibleSearchFragment = (BibleSearchFragment) getSupportFragmentManager().findFragmentById(R.id.fragment);
+
+                if (bibleSearchFragment != null) {
+                    bibleSearchFragment.setRatio(ratio);
+                    bibleSearchFragment.updateResultsListLayout();
+                }
+            } catch (BibleSearchAPIException e) {
+                Log.d(TAG, e.getMessage());
+            }
+        }
+    }
+
+    // TODO move to class and test
+
+    private static final String dimensionsKey = "dimensions";
+
+    private static final String heightKey = "height";
+
+    private static final String widthKey = "width";
+
+
+    private float parseMessageForDimensions(String jsonMessage) throws BibleSearchAPIException {
+
+        if(!TextUtils.isEmpty(jsonMessage)) {
+
+            int height = 1;
+            int width = 1;
+
+            // Creates a new JSONObject with name/value mappings from the JSON string
+            try {
+                JSONObject jsonValues = new JSONObject(jsonMessage);
+
+                // Get dimension values
+                JSONObject dimensionsValues = jsonValues.getJSONObject(dimensionsKey);
+                height = dimensionsValues.optInt(heightKey, height);
+                width = dimensionsValues.optInt(widthKey, width);
+
+            } catch (JSONException e) {
+                throw new BibleSearchAPIException("JSON does not contain dimension data");
+            }
+
+            return getRatio(height, width);
+        }
+
+        return 1;
+    }
+
+    /**
+     * If width is 0, avoid divide by zero error and return 1
+     * @param height
+     * @param width
+     * @return
+     */
+    private float getRatio(int height, int width) {
+        return width == 0 ? 1 : (float)height/(float)width;
     }
 
     /**
@@ -536,6 +623,10 @@ public class BibleSearch extends AppCompatActivity {
         public void onMessageReceived(CastDevice castDevice, String namespace,
                                       String message) {
             Log.d(TAG, "onMessageReceived: " + message);
+
+            if(castDevice.equals(mSelectedDevice) && namespace.equals(getNamespace())) {
+                parseMessage(message);
+            }
         }
 
     }

@@ -77,6 +77,9 @@ limitations under the License.
         castReceiverManager.onSenderConnected = function(event) {
           console.log('Received Sender Connected event: ' + event.data);
           console.log(window.castReceiverManager.getSender(event.data).userAgent);
+
+          // send screen size back to sender
+          window.messageBus.send(event.senderId, screenSizeJSON());
         };
 
         // handler for 'senderdisconnected' event
@@ -132,7 +135,7 @@ limitations under the License.
 
           // inform all senders on the CastMessageBus of the incoming message event
           // sender message listener will be invoked
-          window.messageBus.send(event.senderId, event.data);
+          window.messageBus.broadcast(event.data);
         }
 
         // initialize the CastReceiverManager with an application status message
@@ -174,6 +177,10 @@ limitations under the License.
         txt += "Color depth: " + screen.colorDepth + "\n";
         txt += "Color resolution: " + screen.pixelDepth + "\n";
         return txt;
+      }
+
+      function screenSizeJSON() {
+        return { "dimensions" : { "height" : screen.availHeight, "width" : screen.availWidth } };
       }
 
 </script>
