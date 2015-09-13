@@ -16,7 +16,7 @@ limitations under the License.
 <!--
     Extended by craigneasbey on 17/08/15.
 
-    Biblecast application Google cast customer receiver
+    Biblecast application Google cast custom receiver
 
     https://github.com/craigneasbey/Biblecast
 -->
@@ -25,14 +25,12 @@ limitations under the License.
 <head>
     <style type="text/css">
         body {
-            /* overflow:hidden; */
+            overflow:hidden;
             background-color: #000000;
+            width: 90%;
+            margin: auto auto auto;
         }
-        div{
-            /* height:720PX; */
-            /* width:1280PX; */
-            width: 100%;
-            /* text-align:center; */
+        div {
             border:0px solid silver;
             display: table-cell;
             vertical-align:middle;
@@ -42,10 +40,9 @@ limitations under the License.
             font-family:Verdana, Geneva, sans-serif;
             font-size:40px;
         }
-        .paragraph {
-            width: 90%;
-            display: inline-block;
-            clear: both;
+        sup {
+            margin-left: 0.5em;
+            margin-right: 0.5em;
         }
 
     </style>
@@ -103,28 +100,26 @@ limitations under the License.
 
           // check if the event is a gesture
           if (jsonData.gesture !== undefined) {
-                if (jsonData.element !== undefined) {
-                    if(jsonData.gesture.contains("scroll_up")) {
-                        // scroll up the results list
-                        // TODO
-                        //displayText("Scroll up to element: " + jsonData.element);
-                        scrollTo(jsonData.element);
-                    } else if(jsonData.gesture.contains("scroll_down")) {
-                        // scroll down the results list
-                        // TODO
-                        //displayText("Scroll down to element: " + jsonData.element);
-                        scrollTo(jsonData.element);
+                if (jsonData.offset !== undefined) {
+                    if(jsonData.gesture.contains("scroll")) {
+                        scroll(jsonData.offset);
                     }
                 }
           } else if (jsonData.elements !== undefined) {
                 var elements = jsonData.elements;
                 var html = "";
-                clearMessage();
+                //clearMessage();
+                var amend = false;
                 for(var i=0; i < elements.length; i++) {
-                    amendMessage(i, elements[i]);
-                    //html += elements[i];
-                    //displayText(html);
+                    //amendMessage(i, elements[i]);
+                    if(amend) {
+                        html += " ";
+                    } else {
+                        amend = true;
+                    }
+                    html += elements[i];
                 }
+                displayText(html);
                 window.castReceiverManager.setApplicationState();
           } else if (jsonData.display !== undefined) {
                 displayText(jsonData.display);
@@ -152,7 +147,6 @@ limitations under the License.
       function amendMessage(id, html) {
         console.log(id + ":" + html);
         $('#message').append("<div id='" + id + "' class='paragraph'>" + html + "</div>");
-        //document.getElementById("message").innerHTML="<div id='" + id + "' class='paragraph'>" + html + "</div>";
       };
 
       // utility function to display the text message in the input field
@@ -170,6 +164,31 @@ limitations under the License.
          }, 1000);
       };
 
+      // scroll up or down
+      function scroll(offSet){
+        if(offSet < 0) {
+            scrollUp(Math.abs(offSet));
+        } else if(offSet > 0) {
+            scrollDown(offSet);
+        }
+      };
+
+      // scroll up
+      function scrollUp(offSet){
+         console.log("Up: " + offSet);
+         $('html, body').animate({
+             "scrollTop": "-=" + offSet + "px"
+         }, 0);
+      };
+
+      // scroll down
+      function scrollDown(offSet){
+         console.log("Down: " + offSet);
+         $('html, body').animate({
+             "scrollTop": "+=" + offSet + "px"
+         }, 0);
+      };
+
       function screenSize() {
         var txt = "";
         txt += "Total width/height: " + screen.width + "*" + screen.height + "\n";
@@ -180,7 +199,7 @@ limitations under the License.
       }
 
       function screenSizeJSON() {
-        return { "dimensions" : { "height" : screen.availHeight, "width" : screen.availWidth } };
+        return { "dimensions" : { "width" : screen.availWidth, "height" : screen.availHeight } };
       }
 
 </script>

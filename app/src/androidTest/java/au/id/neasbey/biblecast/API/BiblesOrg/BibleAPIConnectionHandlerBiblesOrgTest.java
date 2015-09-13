@@ -1,4 +1,4 @@
-package au.id.neasbey.biblecast.API.BibleOrg;
+package au.id.neasbey.biblecast.API.BiblesOrg;
 
 import android.text.Spanned;
 
@@ -25,9 +25,9 @@ import static org.mockito.Mockito.when;
 /**
  * Created by craigneasbey on 11/08/15.
  *
- * Tests the Bible.org connection handler
+ * Tests the Bibles.org connection handler
  */
-public class BibleAPIConnectionHandlerBibleOrgTest extends TestCase {
+public class BibleAPIConnectionHandlerBiblesOrgTest extends TestCase {
 
     private BibleAPIConnectionHandler objectUnderTest;
 
@@ -35,11 +35,11 @@ public class BibleAPIConnectionHandlerBibleOrgTest extends TestCase {
     public void setUp() throws Exception {
         super.setUp();
 
-        objectUnderTest = new BibleAPIConnectionHandlerBibleOrg();
+        objectUnderTest = new BibleAPIConnectionHandlerBiblesOrg();
     }
 
     private String createResponse(List<Spanned> testList) {
-        return BibleAPIResponseParserBibleOrgTest.createJSONAndListHTML(testList, BibleAPIResponseParserBibleOrgTest.passageType, true);
+        return BibleAPIResponseParserBiblesOrgTest.createJSONAndListHTML(testList, BibleAPIResponseParserBiblesOrgTest.passageType, true);
     }
 
     public void testConnectAuthentication() throws Exception {

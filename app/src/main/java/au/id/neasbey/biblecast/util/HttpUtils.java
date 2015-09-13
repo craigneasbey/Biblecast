@@ -19,6 +19,10 @@ public class HttpUtils {
 
     public static final String UTF_8 = "UTF-8";
 
+    public static final int MAX_WORD_GROUP = 20;
+
+    public static String SPACE = " ";
+
     /**
      * URL Encodes a map using the character set UTF-8
      *
@@ -59,6 +63,46 @@ public class HttpUtils {
         } catch (UnsupportedEncodingException e) {
             throw new UnsupportedOperationException(e);
         }
+    }
+
+    /**
+     * Adds anchors to a sentence for scrolling
+     * @param sentence
+     * @param sq
+     * @return
+     */
+    public static String addAnchors(String sentence, SequenceNumber sq) {
+
+        boolean startTag;
+        StringBuilder groupedSentence = new StringBuilder();
+
+        String[] words = sentence.split(SPACE);
+
+        int i = 0;
+        while(i < words.length) {
+            startTag = true;
+
+            for (int j = 0; j < MAX_WORD_GROUP && i < words.length; j++) {
+                String word = words[i];
+
+                if (startTag) {
+                    //groupedSentence.append("<span id=\"" + sq.get() + "\">");
+                    //groupedSentence.append("<span id=\"" + sq.get() + "\">");
+                    startTag = false;
+                } else {
+                    groupedSentence.append(SPACE);
+                }
+
+                groupedSentence.append(word);
+                i++;
+            }
+
+            /*if (!startTag) {
+                groupedSentence.append("</span>");
+            }*/
+        }
+
+        return groupedSentence.toString();
     }
 
     /**

@@ -1,19 +1,12 @@
-package au.id.neasbey.biblecast.API.BibleOrg;
+package au.id.neasbey.biblecast.API.BiblesOrg;
 
 import android.text.Html;
 import android.text.Spanned;
-import android.util.Xml;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.xmlpull.v1.XmlPullParser;
-import org.xmlpull.v1.XmlPullParserException;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -21,15 +14,15 @@ import au.id.neasbey.biblecast.API.BibleAPIResponse;
 import au.id.neasbey.biblecast.API.BibleAPIResponseParser;
 import au.id.neasbey.biblecast.API.BibleSearchAPIException;
 import au.id.neasbey.biblecast.R;
-import au.id.neasbey.biblecast.util.HttpUtils;
+import au.id.neasbey.biblecast.util.SequenceNumber;
 import au.id.neasbey.biblecast.util.UIUtils;
 
 /**
  * Created by craigneasbey on 30/06/15.
  *
- * Bible.org Bible API response parser utility
+ * Bibles.org Bible API response parser utility
  */
-public class BibleAPIResponseParserBibleOrg extends BibleAPIResponseParser {
+public class BibleAPIResponseParserBiblesOrg extends BibleAPIResponseParser {
 
     private static final String responseKey = "response";
     private static final String searchKey = "search";
@@ -41,7 +34,7 @@ public class BibleAPIResponseParserBibleOrg extends BibleAPIResponseParser {
     private static final String textKey = "text";
 
     /**
-     * Checks the response code from the Bible.org Bible API server
+     * Checks the response code from the Bibles.org Bible API server
      *
      * @throws BibleSearchAPIException
      */
@@ -77,6 +70,8 @@ public class BibleAPIResponseParserBibleOrg extends BibleAPIResponseParser {
      */
     public List<Spanned> parseJSONToList(String jsonString) throws BibleSearchAPIException {
 
+        SequenceNumber sq = new SequenceNumber();
+
         List<Spanned> resultList = new LinkedList<>();
 
         try {
@@ -104,14 +99,14 @@ public class BibleAPIResponseParserBibleOrg extends BibleAPIResponseParser {
                         switch (typeValue) {
                             case passagesKey:
                                 // Get passages values
-                                results = parsePassages(resultList, resultValues.optJSONArray(passagesKey));
+                                results = parsePassages(resultList, resultValues.optJSONArray(passagesKey), sq);
                                 break;
                             case versesKey:
                                 // Get verses values
-                                results = parseVerses(resultList, resultValues.optJSONArray(versesKey));
+                                results = parseVerses(resultList, resultValues.optJSONArray(versesKey), sq);
                                 break;
                             default:
-                                results = parseVerses(resultList, resultValues.optJSONArray(versesKey));
+                                results = parseVerses(resultList, resultValues.optJSONArray(versesKey), sq);
                         }
                     }
                 }
@@ -136,7 +131,7 @@ public class BibleAPIResponseParserBibleOrg extends BibleAPIResponseParser {
      * @return {@code Boolean.TRUE} if results exist, otherwise {@code Boolean.FALSE}
      * @throws JSONException
      */
-    private boolean parsePassages(List<Spanned> resultList, JSONArray passagesValues) throws JSONException {
+    private boolean parsePassages(List<Spanned> resultList, JSONArray passagesValues, SequenceNumber sq) throws JSONException {
         boolean results = false;
 
         if (passagesValues != null) {
@@ -154,6 +149,7 @@ public class BibleAPIResponseParserBibleOrg extends BibleAPIResponseParser {
 
                         // Add new results to the list,
                         for(String paragraph : passageText.split("\\n")) {
+                            //resultList.add(Html.fromHtml(HttpUtils.addAnchors(paragraph, sq)));
                             resultList.add(Html.fromHtml(paragraph));
                         }
                     }
@@ -172,7 +168,7 @@ public class BibleAPIResponseParserBibleOrg extends BibleAPIResponseParser {
      * @return {@code Boolean.TRUE} if results exist, otherwise {@code Boolean.FALSE}
      * @throws JSONException
      */
-    private boolean parseVerses(List<Spanned> resultList, JSONArray versesValues) throws JSONException {
+    private boolean parseVerses(List<Spanned> resultList, JSONArray versesValues, SequenceNumber sq) throws JSONException {
         boolean results = false;
 
         if (versesValues != null) {
@@ -188,6 +184,7 @@ public class BibleAPIResponseParserBibleOrg extends BibleAPIResponseParser {
 
                     if (referenceText != null && verseText != null) {
                         // Add new results to the list
+                        //resultList.add(Html.fromHtml(HttpUtils.addAnchors(referenceText + " " + verseText, sq)));
                         resultList.add(Html.fromHtml(referenceText + " " + verseText));
 
                         results = true;

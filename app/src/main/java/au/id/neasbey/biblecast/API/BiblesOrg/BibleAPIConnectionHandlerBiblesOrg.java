@@ -1,4 +1,4 @@
-package au.id.neasbey.biblecast.API.BibleOrg;
+package au.id.neasbey.biblecast.API.BiblesOrg;
 
 import android.text.TextUtils;
 import android.util.Log;
@@ -14,11 +14,11 @@ import au.id.neasbey.biblecast.util.UIUtils;
 /**
  * Created by craigneasbey on 11/08/15.
  *
- * Handles the HTTP connection to the Bible.org Bible API
+ * Handles the HTTP connection to the Bibles.org Bible API
  */
-public class BibleAPIConnectionHandlerBibleOrg extends BibleAPIConnectionHandler {
+public class BibleAPIConnectionHandlerBiblesOrg extends BibleAPIConnectionHandler {
 
-    private static final String TAG = BibleAPIConnectionHandlerBibleOrg.class.getSimpleName();
+    private static final String TAG = BibleAPIConnectionHandlerBiblesOrg.class.getSimpleName();
 
     /**
      * Sets the default authenticator for HTTP connections
@@ -32,7 +32,7 @@ public class BibleAPIConnectionHandlerBibleOrg extends BibleAPIConnectionHandler
             throw new BibleSearchAPIException(UIUtils.getContext().getString(R.string.api_no_auth));
         }
 
-        // Password is not required for Bible.org API
+        // Password is not required for Bibles.org API
         if (TextUtils.isEmpty(getPassword())) {
             setPassword("");
         }

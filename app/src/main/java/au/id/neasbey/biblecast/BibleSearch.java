@@ -5,8 +5,11 @@ import android.app.ProgressDialog;
 import android.app.SearchManager;
 import android.content.Context;
 import android.content.Intent;
+import android.gesture.GestureOverlayView;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.CountDownTimer;
+import android.support.v4.view.GestureDetectorCompat;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.app.MediaRouteActionProvider;
@@ -15,13 +18,15 @@ import android.support.v7.media.MediaRouter;
 import android.text.Spanned;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.GestureDetector;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.AbsListView;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.SearchView;
-import android.widget.Toast;
 
 import com.google.android.gms.cast.ApplicationMetadata;
 import com.google.android.gms.cast.Cast;
@@ -36,16 +41,17 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.LinkedList;
 import java.util.List;
 
 import au.id.neasbey.biblecast.API.BibleAPI;
 import au.id.neasbey.biblecast.API.BibleAPIConnectionHandler;
 import au.id.neasbey.biblecast.API.BibleAPIResponseParser;
-import au.id.neasbey.biblecast.API.BibleOrg.BibleAPIBibleOrg;
-import au.id.neasbey.biblecast.API.BibleOrg.BibleAPIConnectionHandlerBibleOrg;
-import au.id.neasbey.biblecast.API.BibleOrg.BibleAPIResponseParserBibleOrg;
 import au.id.neasbey.biblecast.API.BibleSearchAPIException;
+import au.id.neasbey.biblecast.API.BiblesOrg.BibleAPIBiblesOrg;
+import au.id.neasbey.biblecast.API.BiblesOrg.BibleAPIConnectionHandlerBiblesOrg;
+import au.id.neasbey.biblecast.API.BiblesOrg.BibleAPIResponseParserBiblesOrg;
 import au.id.neasbey.biblecast.util.HttpUtils;
 import au.id.neasbey.biblecast.util.UIUtils;
 
@@ -58,10 +64,23 @@ public class BibleSearch extends AppCompatActivity {
 
     private static final String TAG = BibleSearch.class.getSimpleName();
 
-    private String apiURL;
-    private String apiUsername;
-    private String apiPassword;
+    private static final String RESULTS = "results";
+
     private boolean resultsExist = false;
+
+    private final String bibleVersions = "eng-KJV";
+
+    private BibleAPI bibleAPI;
+
+    private List<Spanned> resultList = new LinkedList<>();
+
+    private ArrayAdapter<Spanned> resultsAdapter;
+
+    private ListView resultView;
+
+    private GestureOverlayView gestureView;
+
+    protected GestureDetectorCompat mDetector;
 
     private MediaRouter mMediaRouter;
     private MediaRouteSelector mMediaRouteSelector;
@@ -76,28 +95,69 @@ public class BibleSearch extends AppCompatActivity {
     private boolean mWaitingForReconnect;
     private String mSessionId;
 
-    private List<Spanned> resultList = new LinkedList<>();
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Log.d(TAG, "onCreate");
+
+        // restore previous results
+        if(savedInstanceState != null) {
+            resultList = (List<Spanned>) savedInstanceState.getSerializable(RESULTS);
+        }
+
         setContentView(R.layout.activity_bible_search);
         UIUtils.setContext(this);
 
-        // Configure Bible API
-        apiURL = getText(R.string.api_url).toString();
-        apiUsername = getText(R.string.api_username).toString();
-        apiPassword = getText(R.string.api_password).toString();
+        setupResultsView();
+        setupGestureView();
+        setupBibleAPI();
+        setupCast();
+    }
 
-        // Configure Cast device discovery
+    /**
+     * Link the resultView to the resultList via an array adapter so that the results can be displayed
+     */
+    private void setupResultsView() {
+        // TODO change TextView resource to suit paragraphs
+        resultsAdapter = new ArrayAdapter<>(this, R.layout.result_list_item, resultList);
+        resultView = (ListView) findViewById(R.id.resultView);
+        resultView.setAdapter(resultsAdapter);
+    }
+
+    /**
+     * Setup the gestureView to handle scroll and fling gestures when connected to cast
+     */
+    protected void setupGestureView() {
+        gestureView = (GestureOverlayView) findViewById(R.id.gestureView);
+        gestureView.setOnTouchListener(new ScrollOnTouchListener());
+        gestureView.setGestureVisible(false);
+        mDetector = new GestureDetectorCompat(this, new ScrollGestureListener());
+    }
+
+    /**
+     * Setup Bibles.org REST web service interface
+     */
+    protected void setupBibleAPI() {
+        // Specifies Bibles.org Bible API
+        BibleAPIConnectionHandler bibleAPIConnectionHandler = new BibleAPIConnectionHandlerBiblesOrg();
+        BibleAPIResponseParser bibleAPIResponseParser = new BibleAPIResponseParserBiblesOrg();
+
+        // Configure Bible API
+        bibleAPI = new BibleAPIBiblesOrg(bibleAPIConnectionHandler, bibleAPIResponseParser);
+        bibleAPI.setURL(getText(R.string.api_url).toString());
+        bibleAPI.setUsername(getText(R.string.api_username).toString());
+        bibleAPI.setPassword(getText(R.string.api_password).toString());
+    }
+
+    /**
+     * Setup cast device discovery
+     */
+    protected void setupCast() {
         mMediaRouter = android.support.v7.media.MediaRouter.getInstance(getApplicationContext());
         mMediaRouteSelector = new MediaRouteSelector.Builder()
                 .addControlCategory(CastMediaControlIntent.categoryForCast(getResources()
                         .getString(R.string.app_id))).build();
         mMediaRouterCallback = new BiblecastMediaRouterCallback();
-
-        // Initial application search
-        handleIntent(getIntent());
     }
 
     /**
@@ -119,13 +179,14 @@ public class BibleSearch extends AppCompatActivity {
     private void handleIntent(Intent intent) {
         if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
             String query = intent.getStringExtra(SearchManager.QUERY);
-            new BibleAPITask().execute(query, apiURL, apiUsername, apiPassword);
+            new BibleAPITask().execute(query);
         }
     }
 
     @Override
     protected void onStart() {
         super.onStart();
+        Log.d(TAG, "onStart");
         // Start media router discovery
         mMediaRouter.addCallback(mMediaRouteSelector, mMediaRouterCallback,
                 MediaRouter.CALLBACK_FLAG_REQUEST_DISCOVERY);
@@ -133,6 +194,7 @@ public class BibleSearch extends AppCompatActivity {
 
     @Override
     protected void onStop() {
+        Log.d(TAG, "onStop");
         // End media router discovery
         mMediaRouter.removeCallback(mMediaRouterCallback);
         super.onStop();
@@ -141,10 +203,26 @@ public class BibleSearch extends AppCompatActivity {
     @Override
     public void onDestroy() {
         Log.d(TAG, "onDestroy");
+
+        // Close cast connection
         teardown(true);
+
         super.onDestroy();
     }
 
+    @Override
+    protected void onSaveInstanceState(Bundle savedInstanceState) {
+        super.onSaveInstanceState(savedInstanceState);
+
+        savedInstanceState.putSerializable(RESULTS, (Serializable) resultList);
+    }
+
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+
+        resultList = (List<Spanned>)savedInstanceState.getSerializable(RESULTS);
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -169,55 +247,96 @@ public class BibleSearch extends AppCompatActivity {
         return this;
     }
 
+    class ScrollOnTouchListener implements View.OnTouchListener {
+
+        private final String TAG = ScrollOnTouchListener.class.getName();
+
+        @Override
+        public boolean onTouch(View v, MotionEvent event) {
+            mDetector.onTouchEvent(event);
+
+            Log.d(TAG, "onTouchEvent: " + event.toString());
+
+            return false;
+        }
+    }
+
+    class ScrollGestureListener extends GestureDetector.SimpleOnGestureListener {
+        private final String TAG = ScrollGestureListener.class.getName();
+
+        @Override
+        public boolean onScroll(MotionEvent e1, MotionEvent e2,
+                                float distanceX, float distanceY) {
+            Log.d(TAG, "OnScroll: " + distanceY);
+
+            int offSet = Math.round(distanceY);
+
+            if(offSet != 0) {
+                sendMessage("{ \"gesture\" : \"scroll\", \"offset\" : \"" + offSet + "\" }");
+            }
+
+            return false;
+        }
+
+        public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX,
+                               float velocityY) {
+            Log.d(TAG, "onFling: " + velocityY);
+
+            FlingRunnable fr = new FlingRunnable(e1, e2, velocityX, velocityY);
+            fr.run();
+
+            return false;
+        }
+
+        public class FlingRunnable implements Runnable {
+
+            protected MotionEvent e1;
+            protected MotionEvent e2;
+            protected float velocityX;
+            protected float velocityY;
+            protected float distanceX;
+            protected float distanceY;
+
+
+            public FlingRunnable(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY){
+                this.e1 = e1;
+                this.e2 = e2;
+                this.velocityX = velocityX;
+                this.velocityY = velocityY;
+            }
+
+            @Override
+            public void run() {
+                // TODO needs tuning
+                distanceX = velocityX * -1 / 20;
+                distanceY = velocityY * -1 / 20;
+
+                new CountDownTimer((long)Math.abs(velocityY) / 8, 10) {
+
+                    public void onTick(long millisUntilFinished) {
+                        onScroll(e1, e2, distanceX, distanceY);
+                        distanceY -= distanceY / 10;
+                    }
+
+                    public void onFinish() {
+                        onScroll(e1, e2, distanceX, distanceY);
+                    }
+                }.start();
+            }
+        }
+    }
+
     /**
      * Connects to the Bible REST JSON web service, performs a search query, updates the activity with the response JSON
      */
     private class BibleAPITask extends AsyncTask<String, String, String> {
 
         private final ProgressDialog progressDialog = new ProgressDialog(BibleSearch.this);
-        private final String bibleVersions = "eng-KJV";
-        private BibleAPI bibleAPI;
-        private ArrayAdapter<Spanned> resultsAdapter;
 
         protected void onPreExecute() {
             // Start Progress Dialog (Message)
             progressDialog.setMessage(getText(R.string.ui_wait));
             progressDialog.show();
-
-            // Link the listView to the array adapter so that the results can be displayed
-            resultsAdapter = new ArrayAdapter<>(BibleSearch.this, android.R.layout.simple_list_item_1, resultList);
-
-            ListView listView = (ListView) findViewById(R.id.listView);
-            listView.setAdapter(resultsAdapter);
-            // TODO improve scrolling http://stackoverflow.com/questions/16791100/detect-scroll-up-scroll-down-in-listview
-            listView.setOnScrollListener(new AbsListView.OnScrollListener() {
-
-                private int mLastFirstVisibleItem;
-
-                @Override
-                public void onScrollStateChanged(AbsListView view, int scrollState) {
-                }
-
-                @Override
-                public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
-
-                    Log.d(TAG," onScroll firstVisibleItem: " + firstVisibleItem + " visibleItemCount: " + visibleItemCount + " totalItemCount: " + totalItemCount);
-
-                    if(firstVisibleItem > mLastFirstVisibleItem)
-                    {
-                        Log.d(TAG,"Scrolling down");
-                        sendMessage("{ \"gesture\" : \"scroll_down\", \"element\" : \"" + firstVisibleItem + "\" }");
-                    }
-
-                    if(firstVisibleItem < mLastFirstVisibleItem)
-                    {
-                        Log.d(TAG, "Scrolling up");
-                        sendMessage("{ \"gesture\" : \"scroll_up\", \"element\" : \"" + firstVisibleItem + "\" }");
-                    }
-
-                    mLastFirstVisibleItem = firstVisibleItem;
-                }
-            });
         }
 
         @Override
@@ -233,15 +352,7 @@ public class BibleSearch extends AppCompatActivity {
          */
         private String queryBibleAPI(String... params) {
 
-            // Specifies Bible.org Bible API
-            BibleAPIConnectionHandler bibleAPIConnectionHandler = new BibleAPIConnectionHandlerBibleOrg();
-            BibleAPIResponseParser bibleAPIResponseParser = new BibleAPIResponseParserBibleOrg();
-
-            bibleAPI = new BibleAPIBibleOrg(bibleAPIConnectionHandler, bibleAPIResponseParser);
             bibleAPI.setQuery(params[0]);
-            bibleAPI.setURL(params[1]);
-            bibleAPI.setUsername(params[2]);
-            bibleAPI.setPassword(params[3]);
             bibleAPI.setVersions(bibleVersions);
 
             return bibleAPI.query();
@@ -258,10 +369,6 @@ public class BibleSearch extends AppCompatActivity {
 
                 // Notify the list adapter the data has changed
                 resultsAdapter.notifyDataSetChanged();
-
-                // record result list view dimensions
-                resetResultsListView();
-                updateResultsListLayout();
 
                 // Hide the entry keyboard
                 SearchView searchView = (SearchView) findViewById(R.id.searchView);
@@ -301,6 +408,20 @@ public class BibleSearch extends AppCompatActivity {
 
             return false;
         }
+
+        @Override
+        protected void onCancelled() {
+            closeDialog();
+        }
+
+        /**
+         * Close progress dialog
+         */
+        private void closeDialog() {
+            if(progressDialog != null && progressDialog.isShowing()) {
+                progressDialog.dismiss();
+            }
+        }
     }
 
     /**
@@ -320,7 +441,7 @@ public class BibleSearch extends AppCompatActivity {
                             mBiblecastChannel = null;
                         }
                     } catch (IOException e) {
-                        // TODO // FIXME: 17/08/15
+                        // TODO handle exception
                         Log.e(TAG, "Exception while removing channel", e);
                     }
                     mApiClient.disconnect();
@@ -336,24 +457,51 @@ public class BibleSearch extends AppCompatActivity {
         mWaitingForReconnect = false;
         mSessionId = null;
 
-        resetResultsListView();
+        showResults();
     }
 
-    private void resetResultsListView() {
-        BibleSearchFragment bibleSearchFragment = (BibleSearchFragment) getSupportFragmentManager().findFragmentById(R.id.fragment);
+    private void showResults() {
+        if(resultView != null) {
+            resultView.setVisibility(View.VISIBLE);
+            Log.d(TAG, "Shown results");
 
-        if (bibleSearchFragment != null) {
-            bibleSearchFragment.resetResultsListView();
+            hideGestureView();
         }
     }
 
-    private void updateResultsListLayout() {
-        BibleSearchFragment bibleSearchFragment = (BibleSearchFragment) getSupportFragmentManager().findFragmentById(R.id.fragment);
+    private void hideResults() {
+        if(resultView != null) {
+            resultView.setVisibility(View.INVISIBLE);
+            Log.d(TAG, "Hidden results");
 
-        if (bibleSearchFragment != null) {
-            bibleSearchFragment.updateResultsListLayout();
-            //bibleSearchFragment.testing();
+            showGestureView();
         }
+    }
+
+    private void showGestureView() {
+        if(gestureView != null) {
+            if(resultView != null) {
+                ViewGroup.LayoutParams layoutParams = gestureView.getLayoutParams();
+                layoutParams.height = resultView.getHeight();
+                layoutParams.width = resultView.getWidth();
+                gestureView.setLayoutParams(layoutParams);
+                Log.d(TAG, "gestureView params w: " + layoutParams.width + " h: " + layoutParams.height);
+            }
+
+            gestureView.setVisibility(View.VISIBLE);
+            Log.d(TAG, "Shown gestureView");
+        }
+    }
+
+    private void hideGestureView() {
+        if(gestureView != null) {
+            gestureView.setVisibility(View.INVISIBLE);
+            Log.d(TAG, "Hidden gestureView");
+        }
+    }
+
+    private boolean isCastConnected() {
+        return mApiClient != null && mBiblecastChannel != null;
     }
 
     /**
@@ -375,10 +523,12 @@ public class BibleSearch extends AppCompatActivity {
                             }
                         });
             } catch (Exception e) {
+                // TODO handle exception
                 Log.e(TAG, "Exception while sending message", e);
             }
         } else {
-            Toast.makeText(BibleSearch.this, message, Toast.LENGTH_SHORT).show();
+            //Toast.makeText(BibleSearch.this, message, Toast.LENGTH_SHORT).show();
+            Log.d(TAG, "Disconnected message: " + message);
         }
     }
 
@@ -387,15 +537,7 @@ public class BibleSearch extends AppCompatActivity {
         if(!TextUtils.isEmpty(message)) {
 
             try {
-                float ratio = parseMessageForDimensions(message);
-
-                // Change results dimensions to suit cast device.  Ensures UX is consistent.
-                BibleSearchFragment bibleSearchFragment = (BibleSearchFragment) getSupportFragmentManager().findFragmentById(R.id.fragment);
-
-                if (bibleSearchFragment != null) {
-                    bibleSearchFragment.setRatio(ratio);
-                    bibleSearchFragment.updateResultsListLayout();
-                }
+                Dimensions dimensions = parseMessageForDimensions(message);
             } catch (BibleSearchAPIException e) {
                 Log.d(TAG, e.getMessage());
             }
@@ -411,12 +553,12 @@ public class BibleSearch extends AppCompatActivity {
     private static final String widthKey = "width";
 
 
-    private float parseMessageForDimensions(String jsonMessage) throws BibleSearchAPIException {
+    private Dimensions parseMessageForDimensions(String jsonMessage) throws BibleSearchAPIException {
+
+        int width = 0;
+        int height = 0;
 
         if(!TextUtils.isEmpty(jsonMessage)) {
-
-            int height = 1;
-            int width = 1;
 
             // Creates a new JSONObject with name/value mappings from the JSON string
             try {
@@ -424,27 +566,46 @@ public class BibleSearch extends AppCompatActivity {
 
                 // Get dimension values
                 JSONObject dimensionsValues = jsonValues.getJSONObject(dimensionsKey);
-                height = dimensionsValues.optInt(heightKey, height);
                 width = dimensionsValues.optInt(widthKey, width);
+                height = dimensionsValues.optInt(heightKey, height);
 
             } catch (JSONException e) {
                 throw new BibleSearchAPIException("JSON does not contain dimension data");
             }
-
-            return getRatio(height, width);
         }
 
-        return 1;
+        return new Dimensions(width, height);
     }
 
-    /**
-     * If width is 0, avoid divide by zero error and return 1
-     * @param height
-     * @param width
-     * @return
-     */
-    private float getRatio(int height, int width) {
-        return width == 0 ? 1 : (float)height/(float)width;
+    public class Dimensions {
+        private int width;
+        private int height;
+
+        public Dimensions() {
+            this.width = 0;
+            this.height = 0;
+        }
+
+        public Dimensions(int width, int height) {
+            this.width = width;
+            this.height = height;
+        }
+
+        public int getWidth() {
+            return width;
+        }
+
+        public void setWidth(int width) {
+            this.width = width;
+        }
+
+        public int getHeight() {
+            return height;
+        }
+
+        public void setHeight(int height) {
+            this.height = height;
+        }
     }
 
     /**
@@ -486,8 +647,7 @@ public class BibleSearch extends AppCompatActivity {
             // Connect to Google Play services
             mConnectionCallbacks = new ConnectionCallbacks();
             mConnectionFailedListener = new ConnectionFailedListener();
-            Cast.CastOptions.Builder apiOptionsBuilder = Cast.CastOptions
-                    .builder(mSelectedDevice, mCastListener);
+            Cast.CastOptions.Builder apiOptionsBuilder = Cast.CastOptions.builder(mSelectedDevice, mCastListener);
             mApiClient = new GoogleApiClient.Builder(this)
                     .addApi(Cast.API, apiOptionsBuilder.build())
                     .addConnectionCallbacks(mConnectionCallbacks)
@@ -496,6 +656,7 @@ public class BibleSearch extends AppCompatActivity {
 
             mApiClient.connect();
         } catch (Exception e) {
+            // TODO handle exception
             Log.e(TAG, "Failed launchReceiver", e);
         }
     }
@@ -511,8 +672,7 @@ public class BibleSearch extends AppCompatActivity {
             Log.d(TAG, "onConnected");
 
             if (mApiClient == null) {
-                // We got disconnected while this runnable was pending
-                // execution.
+                // We got disconnected while this runnable was pending execution.
                 return;
             }
 
@@ -532,7 +692,10 @@ public class BibleSearch extends AppCompatActivity {
                                     mApiClient,
                                     mBiblecastChannel.getNamespace(),
                                     mBiblecastChannel);
+
+                            hideResults();
                         } catch (IOException e) {
+                            // TODO handle exception
                             Log.e(TAG, "Exception while creating channel", e);
                         }
                     }
@@ -559,14 +722,15 @@ public class BibleSearch extends AppCompatActivity {
                                         mBiblecastChannel = new BiblecastChannel();
                                         try {
                                             Cast.CastApi.setMessageReceivedCallbacks(mApiClient, mBiblecastChannel.getNamespace(), mBiblecastChannel);
+
+                                            hideResults();
                                         } catch (IOException e) {
-                                            Log.e(TAG, "Exception while creating channel",
-                                                    e);
+                                            // TODO handle exception
+                                            Log.e(TAG, "Exception while creating channel", e);
                                         }
 
                                         // set the initial instructions on the receiver if no results exist
                                         if (resultsExist) {
-                                            // TODO convert list to JSON
                                             sendMessage(HttpUtils.listToJSON(resultList));
                                         } else {
                                             sendMessage(getString(R.string.instructions));
@@ -579,6 +743,7 @@ public class BibleSearch extends AppCompatActivity {
                             });
                 }
             } catch (Exception e) {
+                // TODO handle exception
                 Log.e(TAG, "Failed to launch application", e);
             }
         }

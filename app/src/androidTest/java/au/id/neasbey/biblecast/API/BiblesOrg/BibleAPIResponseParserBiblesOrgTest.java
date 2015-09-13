@@ -1,4 +1,4 @@
-package au.id.neasbey.biblecast.API.BibleOrg;
+package au.id.neasbey.biblecast.API.BiblesOrg;
 
 import android.content.res.Resources;
 import android.test.mock.MockContext;
@@ -21,7 +21,7 @@ import au.id.neasbey.biblecast.util.UIUtils;
  *
  * Test the Bible,Org Bible API response parser from JSON to list
  */
-public class BibleAPIResponseParserBibleOrgTest extends TestCase {
+public class BibleAPIResponseParserBiblesOrgTest extends TestCase {
 
     public static final String passageType = "passage";
 
@@ -33,7 +33,7 @@ public class BibleAPIResponseParserBibleOrgTest extends TestCase {
     public void setUp() throws Exception {
         super.setUp();
 
-        objectUnderTest = new BibleAPIResponseParserBibleOrg();
+        objectUnderTest = new BibleAPIResponseParserBiblesOrg();
     }
 
     /**
