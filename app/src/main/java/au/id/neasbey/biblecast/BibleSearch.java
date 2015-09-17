@@ -3,6 +3,7 @@ package au.id.neasbey.biblecast;
 import android.app.Activity;
 import android.app.ProgressDialog;
 import android.app.SearchManager;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.gesture.GestureOverlayView;
@@ -24,9 +25,11 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.SearchView;
+import android.widget.Spinner;
 
 import com.google.android.gms.cast.ApplicationMetadata;
 import com.google.android.gms.cast.Cast;
@@ -52,6 +55,7 @@ import au.id.neasbey.biblecast.API.BibleSearchAPIException;
 import au.id.neasbey.biblecast.API.BiblesOrg.BibleAPIBiblesOrg;
 import au.id.neasbey.biblecast.API.BiblesOrg.BibleAPIConnectionHandlerBiblesOrg;
 import au.id.neasbey.biblecast.API.BiblesOrg.BibleAPIResponseParserBiblesOrg;
+import au.id.neasbey.biblecast.API.BibleAPIQueryType;
 import au.id.neasbey.biblecast.util.HttpUtils;
 import au.id.neasbey.biblecast.util.UIUtils;
 
@@ -60,19 +64,27 @@ import au.id.neasbey.biblecast.util.UIUtils;
  *
  * Activity that allows the user to enter bible search term and return results from a web service
  */
-public class BibleSearch extends AppCompatActivity {
+public class BibleSearch extends AppCompatActivity implements AdapterView.OnItemSelectedListener {
 
     private static final String TAG = BibleSearch.class.getSimpleName();
 
+    private static final String LANGUAGE_ENG_US = "eng-US";
+
+    private static final String DEFAULT_VERSION = "eng-NASB";
+
     private static final String RESULTS = "results";
 
-    private boolean resultsExist = false;
+    private boolean resultsExist;
 
-    private final String bibleVersions = "eng-KJV";
+    private String bibleVersion;
 
-    private BibleAPI bibleAPI;
+    private List<BibleVersion> versionList;
 
-    private List<Spanned> resultList = new LinkedList<>();
+    private ArrayAdapter<BibleVersion> versionAdapter;
+
+    private List<String> bookList;
+
+    private List<Spanned> resultList;
 
     private ArrayAdapter<Spanned> resultsAdapter;
 
@@ -95,6 +107,14 @@ public class BibleSearch extends AppCompatActivity {
     private boolean mWaitingForReconnect;
     private String mSessionId;
 
+    public BibleSearch() {
+        bibleVersion = DEFAULT_VERSION;
+        versionList = new LinkedList<>();
+        bookList = new LinkedList<>();
+        resultList = new LinkedList<>();
+        resultsExist = false;
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -110,8 +130,21 @@ public class BibleSearch extends AppCompatActivity {
 
         setupResultsView();
         setupGestureView();
-        setupBibleAPI();
+        setupVersionSpinner();
         setupCast();
+
+        getBibleVersions();
+        getBookSuggestions();
+    }
+
+    private void setupVersionSpinner() {
+        // may need this: http://stackoverflow.com/questions/1625249/android-how-to-bind-spinner-to-custom-object-list
+        versionAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, versionList);
+        versionAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+
+        Spinner spinner = (Spinner) findViewById(R.id.versionSpinner);
+        spinner.setAdapter(versionAdapter);
+        spinner.setOnItemSelectedListener(this);
     }
 
     /**
@@ -135,21 +168,6 @@ public class BibleSearch extends AppCompatActivity {
     }
 
     /**
-     * Setup Bibles.org REST web service interface
-     */
-    protected void setupBibleAPI() {
-        // Specifies Bibles.org Bible API
-        BibleAPIConnectionHandler bibleAPIConnectionHandler = new BibleAPIConnectionHandlerBiblesOrg();
-        BibleAPIResponseParser bibleAPIResponseParser = new BibleAPIResponseParserBiblesOrg();
-
-        // Configure Bible API
-        bibleAPI = new BibleAPIBiblesOrg(bibleAPIConnectionHandler, bibleAPIResponseParser);
-        bibleAPI.setURL(getText(R.string.api_url).toString());
-        bibleAPI.setUsername(getText(R.string.api_username).toString());
-        bibleAPI.setPassword(getText(R.string.api_password).toString());
-    }
-
-    /**
      * Setup cast device discovery
      */
     protected void setupCast() {
@@ -158,6 +176,14 @@ public class BibleSearch extends AppCompatActivity {
                 .addControlCategory(CastMediaControlIntent.categoryForCast(getResources()
                         .getString(R.string.app_id))).build();
         mMediaRouterCallback = new BiblecastMediaRouterCallback();
+    }
+
+    private void getBibleVersions() {
+        new BibleAPITask().execute(BibleAPIQueryType.VERSION.name(), getText(R.string.api_versions_url).toString(), LANGUAGE_ENG_US);
+    }
+
+    private void getBookSuggestions() {
+        new BibleAPITask().execute(BibleAPIQueryType.BOOK.name(), getText(R.string.api_books_url).toString());
     }
 
     /**
@@ -178,9 +204,26 @@ public class BibleSearch extends AppCompatActivity {
      */
     private void handleIntent(Intent intent) {
         if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
+            // Handle search
             String query = intent.getStringExtra(SearchManager.QUERY);
-            new BibleAPITask().execute(query);
+
+            if(!TextUtils.isEmpty(query)) {
+                new BibleAPITask().execute(BibleAPIQueryType.SEARCH.name(), getText(R.string.api_search_url).toString(), query.toLowerCase(), bibleVersion);
+            }
         }
+        /*else if (Intent.ACTION_VIEW.equals(intent.getAction())) {
+            // Handle a suggestions selection
+            //Uri data = intent.getData();
+            String query = intent.getStringExtra(SearchManager.QUERY).toLowerCase();
+            //String query = data.getLastPathSegment().toLowerCase();
+            new BibleAPITask().execute(query);
+
+            InputMethodManager imm = (InputMethodManager)getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+
+            if (imm != null) {
+                imm.hideSoftInputFromWindow(getWindowToken(), 0);
+            }
+        }*/
     }
 
     @Override
@@ -245,6 +288,31 @@ public class BibleSearch extends AppCompatActivity {
 
     private Activity getActivity() {
         return this;
+    }
+
+    @Override
+    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+        bibleVersion = ((BibleVersion)parent.getItemAtPosition(position)).getId();
+        Log.d(TAG, "BibleVersion: " + bibleVersion);
+    }
+
+    @Override
+    public void onNothingSelected(AdapterView<?> parent) {
+        int selected = 0;
+
+        for(int i=0; i < versionList.size(); i++) {
+            BibleVersion version = versionList.get(i);
+            if(version.getId().equalsIgnoreCase(bibleVersion)) {
+                selected = i;
+            }
+        }
+
+        parent.setSelection(selected);
+
+        if(selected == 0 && versionList.size() > 0) {
+            bibleVersion = versionList.get(0).getId();
+            Log.d(TAG, "BibleVersion: " + bibleVersion);
+        }
     }
 
     class ScrollOnTouchListener implements View.OnTouchListener {
@@ -331,12 +399,32 @@ public class BibleSearch extends AppCompatActivity {
      */
     private class BibleAPITask extends AsyncTask<String, String, String> {
 
+        private BibleAPI bibleAPI;
+
         private final ProgressDialog progressDialog = new ProgressDialog(BibleSearch.this);
 
+        private BibleAPIQueryType queryType;
+
         protected void onPreExecute() {
+            setupBibleAPI();
+
             // Start Progress Dialog (Message)
             progressDialog.setMessage(getText(R.string.ui_wait));
             progressDialog.show();
+        }
+
+        /**
+         * Setup Bibles.org REST web service interface
+         */
+        protected void setupBibleAPI() {
+            // Specifies Bibles.org Bible API
+            BibleAPIConnectionHandler bibleAPIConnectionHandler = new BibleAPIConnectionHandlerBiblesOrg();
+            BibleAPIResponseParser bibleAPIResponseParser = new BibleAPIResponseParserBiblesOrg();
+
+            // Configure Bible API
+            bibleAPI = new BibleAPIBiblesOrg(bibleAPIConnectionHandler, bibleAPIResponseParser);
+            bibleAPI.setUsername(getText(R.string.api_username).toString());
+            bibleAPI.setPassword(getText(R.string.api_password).toString());
         }
 
         @Override
@@ -352,10 +440,31 @@ public class BibleSearch extends AppCompatActivity {
          */
         private String queryBibleAPI(String... params) {
 
-            bibleAPI.setQuery(params[0]);
-            bibleAPI.setVersions(bibleVersions);
+            queryType = BibleAPIQueryType.valueOf(params[0]);
+            bibleAPI.setQueryType(queryType);
+
+            switch(queryType) {
+                case SEARCH:
+                    setQueryParameters(params[1], params[2], params[3]);
+                    break;
+                case VERSION:
+                    bibleAPI.setURL(params[1]);
+                    bibleAPI.setLanguage(params[2]);
+                    break;
+                case BOOK:
+                    bibleAPI.setURL(params[1]);
+                    break;
+                default:
+                    setQueryParameters(params[1], params[2], params[3]);
+            }
 
             return bibleAPI.query();
+        }
+
+        private void setQueryParameters(String url, String query, String version) {
+            bibleAPI.setURL(url);
+            bibleAPI.setQuery(query);
+            bibleAPI.setVersions(version);
         }
 
         protected void onPostExecute(String result) {
@@ -364,18 +473,19 @@ public class BibleSearch extends AppCompatActivity {
             progressDialog.dismiss();
 
             if (isResultSuccessful(result)) {
-                resultsExist = true;
-                bibleAPI.updateResultList(resultList);
-
-                // Notify the list adapter the data has changed
-                resultsAdapter.notifyDataSetChanged();
-
-                // Hide the entry keyboard
-                SearchView searchView = (SearchView) findViewById(R.id.searchView);
-                searchView.clearFocus();
-
-                // send results to cast receiver
-                sendMessage(HttpUtils.listToJSON(resultList));
+                switch(queryType) {
+                    case SEARCH:
+                        handleSearchResults();
+                        break;
+                    case VERSION:
+                        handleVersionResults();
+                        break;
+                    case BOOK:
+                        handleBookResults();
+                        break;
+                    default:
+                        handleSearchResults();
+                }
             }
         }
 
@@ -407,6 +517,51 @@ public class BibleSearch extends AppCompatActivity {
             }
 
             return false;
+        }
+
+        private void handleSearchResults() {
+
+            resultsExist = true;
+            bibleAPI.updateResultList(resultList);
+
+            // Notify the list adapter the data has changed
+            resultsAdapter.notifyDataSetChanged();
+
+            // Hide the entry keyboard
+            SearchView searchView = (SearchView) findViewById(R.id.searchView);
+            searchView.clearFocus();
+
+            // send results to cast receiver
+            sendMessage(HttpUtils.listToJSON(resultList));
+        }
+
+        private void handleVersionResults() {
+
+            bibleAPI.updateResultList(versionList);
+
+            // Notify the list adapter the data has changed
+            versionAdapter.notifyDataSetChanged();
+        }
+
+        private void handleBookResults() {
+
+            bibleAPI.updateResultList(bookList);
+
+            removeAllSuggestions();
+
+            for(String book : bookList) {
+                addSuggestion(book);
+            }
+        }
+
+        private void removeAllSuggestions() {
+            getContentResolver().delete(SearchSuggestionProvider.CONTENT_URI, null, null);
+        }
+
+        private void addSuggestion(String suggestion) {
+            ContentValues values = new ContentValues();
+            values.put(SearchSuggestionProvider.SUGGESTION, suggestion);
+            getContentResolver().insert(SearchSuggestionProvider.CONTENT_URI, values);
         }
 
         @Override

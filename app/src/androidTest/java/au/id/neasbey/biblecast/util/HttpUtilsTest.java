@@ -52,10 +52,7 @@ public class HttpUtilsTest extends TestCase {
     }
 
     private List<Spanned> createResultList() {
-        List<Spanned> testList = new LinkedList<>();
-        BibleAPIResponseParserBiblesOrgTest.createJSONAndListHTML(testList, BibleAPIResponseParserBiblesOrgTest.passageType, true);
-
-        return testList;
+        return BibleAPIResponseParserBiblesOrgTest.createSearchList(BibleAPIResponseParserBiblesOrgTest.passageType);
     }
 
     public void testUrlEncodeUTF8Map() throws Exception {

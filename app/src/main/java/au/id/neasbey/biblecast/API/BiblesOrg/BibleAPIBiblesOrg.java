@@ -7,6 +7,7 @@ import java.util.Map;
 
 import au.id.neasbey.biblecast.API.BibleAPI;
 import au.id.neasbey.biblecast.API.BibleAPIConnectionHandler;
+import au.id.neasbey.biblecast.API.BibleAPIQueryType;
 import au.id.neasbey.biblecast.API.BibleAPIResponseParser;
 import au.id.neasbey.biblecast.API.BibleSearchAPIException;
 import au.id.neasbey.biblecast.R;
@@ -25,6 +26,8 @@ public class BibleAPIBiblesOrg extends BibleAPI {
     private static final String queryParameter = "query";
 
     private static final String versionParameter = "version";
+
+    private static final String languageParameter = "language";
 
     public BibleAPIBiblesOrg(BibleAPIConnectionHandler bibleAPIConnectionHandler, BibleAPIResponseParser bibleAPIResponseParser) {
         super(bibleAPIConnectionHandler,  bibleAPIResponseParser);
@@ -49,18 +52,32 @@ public class BibleAPIBiblesOrg extends BibleAPI {
     @Override
     public String getRequestParameters() throws BibleSearchAPIException {
 
-        if (TextUtils.isEmpty(getQuery())) {
-            throw new BibleSearchAPIException(UIUtils.getContext().getString(R.string.api_no_query));
+        switch (getQueryType()) {
+            case SEARCH:
+                if (TextUtils.isEmpty(getQuery())) {
+                    throw new BibleSearchAPIException(UIUtils.getContext().getString(R.string.api_no_query));
+                }
+
+                if (TextUtils.isEmpty(getVersions())) {
+                    throw new BibleSearchAPIException(UIUtils.getContext().getString(R.string.api_no_version));
+                }
+
+                Map<String, String> searchParameters = new HashMap<>();
+                searchParameters.put(queryParameter, getQuery());
+                searchParameters.put(versionParameter, getVersions());
+
+                return "?" + HttpUtils.urlEncodeUTF8(searchParameters);
+            case VERSION:
+                if (TextUtils.isEmpty(getLanguage())) {
+                    throw new BibleSearchAPIException(UIUtils.getContext().getString(R.string.api_no_language));
+                }
+
+                Map<String, String> versionParameters = new HashMap<>();
+                versionParameters.put(languageParameter, getLanguage());
+
+                return "?" + HttpUtils.urlEncodeUTF8(versionParameters);
+            default:
+                return "";
         }
-
-        if (TextUtils.isEmpty(getVersions())) {
-            throw new BibleSearchAPIException(UIUtils.getContext().getString(R.string.api_no_version));
-        }
-
-        Map<String, String> parameters = new HashMap<>();
-        parameters.put(queryParameter, getQuery());
-        parameters.put(versionParameter, getVersions());
-
-        return "?" + HttpUtils.urlEncodeUTF8(parameters);
     }
 }

@@ -13,6 +13,7 @@ import java.util.List;
 import au.id.neasbey.biblecast.API.BibleAPIResponse;
 import au.id.neasbey.biblecast.API.BibleAPIResponseParser;
 import au.id.neasbey.biblecast.API.BibleSearchAPIException;
+import au.id.neasbey.biblecast.BibleVersion;
 import au.id.neasbey.biblecast.R;
 import au.id.neasbey.biblecast.util.SequenceNumber;
 import au.id.neasbey.biblecast.util.UIUtils;
@@ -32,6 +33,11 @@ public class BibleAPIResponseParserBiblesOrg extends BibleAPIResponseParser {
     private static final String versesKey = "verses";
     private static final String referenceKey = "reference";
     private static final String textKey = "text";
+    private static final String versionsKey = "versions";
+    private static final String idKey = "id";
+    private static final String nameKey = "name";
+    private static final String abbreviationKey = "abbreviation";
+    private static final String booksKey = "books";
 
     /**
      * Checks the response code from the Bibles.org Bible API server
@@ -40,11 +46,11 @@ public class BibleAPIResponseParserBiblesOrg extends BibleAPIResponseParser {
      */
     @Override
     public void parseResponseStatus(int responseCode, String responseMessage) throws BibleSearchAPIException {
-        if (responseCode == BibleAPIResponse.responseCodeUnauthorized) {
+        if (responseCode == BibleAPIResponse.RESPONSE_CODE_UNAUTHORIZED) {
             throw new BibleSearchAPIException(UIUtils.getContext().getString(R.string.api_bible_org_incorrect));
         }
 
-        if (responseCode != BibleAPIResponse.responseCodeOk) {
+        if (responseCode != BibleAPIResponse.RESPONSE_CODE_OK) {
             throw new BibleSearchAPIException(responseCode + " - " + responseMessage);
         }
     }
@@ -57,8 +63,18 @@ public class BibleAPIResponseParserBiblesOrg extends BibleAPIResponseParser {
      * @throws BibleSearchAPIException
      */
     @Override
-    public List<Spanned> parseResponseDataToList(String responseString) throws BibleSearchAPIException {
+    public List<Spanned> parseResponseDataToSpannedList(String responseString) throws BibleSearchAPIException {
         return parseJSONToList(responseString);
+    }
+
+    @Override
+    public List<BibleVersion> parseResponseDataToVersionList(String responseString) throws BibleSearchAPIException {
+        return parseJSONToVersionList(responseString);
+    }
+
+    @Override
+    public List<String> parseResponseDataToStringList(String responseString) throws BibleSearchAPIException {
+        return parseJSONToStringList(responseString);
     }
 
     /**
@@ -186,6 +202,121 @@ public class BibleAPIResponseParserBiblesOrg extends BibleAPIResponseParser {
                         // Add new results to the list
                         //resultList.add(Html.fromHtml(HttpUtils.addAnchors(referenceText + " " + verseText, sq)));
                         resultList.add(Html.fromHtml(referenceText + " " + verseText));
+
+                        results = true;
+                    }
+                }
+            }
+        }
+
+        return results;
+    }
+
+    private List<BibleVersion> parseJSONToVersionList(String jsonString) throws BibleSearchAPIException {
+
+        List<BibleVersion> resultList = new LinkedList<>();
+
+        try {
+            boolean results = false;
+
+            // Creates a new JSONObject with name/value mappings from the JSON string
+            JSONObject jsonValues = new JSONObject(jsonString);
+
+            // Get response values
+            JSONObject responseValues = jsonValues.optJSONObject(responseKey);
+
+            // Get versions values
+            if (responseValues != null) {
+                results = parseVersions(resultList, responseValues.optJSONArray(versionsKey));
+            }
+
+            if (!results) {
+                throw new BibleSearchAPIException(UIUtils.getContext().getString(R.string.api_no_results));
+            }
+        } catch (JSONException e) {
+
+            throw new BibleSearchAPIException(e.getMessage());
+        }
+
+        return resultList;
+    }
+
+    private boolean parseVersions(List<BibleVersion> resultList, JSONArray versionsValues) throws JSONException {
+        boolean results = false;
+
+        if (versionsValues != null) {
+            int versionsLength = versionsValues.length();
+
+            for (int i = 0; i < versionsLength; i++) {
+
+                JSONObject versionValues = versionsValues.optJSONObject(i);
+
+                if (versionValues != null) {
+                    String idText = versionValues.getString(idKey);
+                    String nameText = versionValues.getString(nameKey);
+                    String abbreviation = versionValues.getString(abbreviationKey);
+
+                    if (idText != null && nameText != null && abbreviation != null) {
+                        // Add new results to the list
+                        BibleVersion bibleVersion = new BibleVersion();
+                        bibleVersion.setId(idText);
+                        bibleVersion.setName(nameText);
+                        bibleVersion.setAbbreviation(abbreviation);
+                        resultList.add(bibleVersion);
+
+                        results = true;
+                    }
+                }
+            }
+        }
+
+        return results;
+    }
+
+    private List<String> parseJSONToStringList(String jsonString) throws BibleSearchAPIException {
+        List<String> resultList = new LinkedList<>();
+
+        try {
+            boolean results = false;
+
+            // Creates a new JSONObject with name/value mappings from the JSON string
+            JSONObject jsonValues = new JSONObject(jsonString);
+
+            // Get response values
+            JSONObject responseValues = jsonValues.optJSONObject(responseKey);
+
+            // Get versions values
+            if (responseValues != null) {
+                results = parseBooks(resultList, responseValues.optJSONArray(booksKey));
+            }
+
+            if (!results) {
+                throw new BibleSearchAPIException(UIUtils.getContext().getString(R.string.api_no_results));
+            }
+        } catch (JSONException e) {
+
+            throw new BibleSearchAPIException(e.getMessage());
+        }
+
+        return resultList;
+    }
+
+    private boolean parseBooks(List<String> resultList, JSONArray booksValues) throws JSONException {
+        boolean results = false;
+
+        if (booksValues != null) {
+            int booksLength = booksValues.length();
+
+            for (int i = 0; i < booksLength; i++) {
+
+                JSONObject bookValues = booksValues.optJSONObject(i);
+
+                if (bookValues != null) {
+                    String nameText = bookValues.getString(nameKey);
+
+                    if (nameText != null) {
+                        // Add new results to the list
+                        resultList.add(nameText);
 
                         results = true;
                     }

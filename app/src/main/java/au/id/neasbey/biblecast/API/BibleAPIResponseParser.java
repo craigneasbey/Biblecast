@@ -4,6 +4,8 @@ import android.text.Spanned;
 
 import java.util.List;
 
+import au.id.neasbey.biblecast.BibleVersion;
+
 /**
  * Created by craigneasbey on 30/06/15.
  *
@@ -27,5 +29,9 @@ public abstract class BibleAPIResponseParser {
      * @return Resulting list after parsing the string
      * @throws BibleSearchAPIException
      */
-    public abstract List<Spanned> parseResponseDataToList(String responseString) throws BibleSearchAPIException;
+    public abstract List<Spanned> parseResponseDataToSpannedList(String responseString) throws BibleSearchAPIException;
+
+    public abstract List<BibleVersion> parseResponseDataToVersionList(String responseString) throws BibleSearchAPIException;
+
+    public abstract List<String> parseResponseDataToStringList(String responseString) throws BibleSearchAPIException;
 }
