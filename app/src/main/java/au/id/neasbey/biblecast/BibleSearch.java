@@ -6,6 +6,7 @@ import android.app.SearchManager;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
 import android.gesture.GestureOverlayView;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -64,7 +65,7 @@ import au.id.neasbey.biblecast.util.UIUtils;
  *
  * Activity that allows the user to enter bible search term and return results from a web service
  */
-public class BibleSearch extends AppCompatActivity implements AdapterView.OnItemSelectedListener {
+public class BibleSearch extends AppCompatActivity {
 
     private static final String TAG = BibleSearch.class.getSimpleName();
 
@@ -144,7 +145,7 @@ public class BibleSearch extends AppCompatActivity implements AdapterView.OnItem
 
         Spinner spinner = (Spinner) findViewById(R.id.versionSpinner);
         spinner.setAdapter(versionAdapter);
-        spinner.setOnItemSelectedListener(this);
+        spinner.setOnItemSelectedListener(new SearchOnItemSelectedListener());
     }
 
     /**
@@ -277,6 +278,7 @@ public class BibleSearch extends AppCompatActivity implements AdapterView.OnItem
         SearchView searchView = (SearchView) findViewById(R.id.searchView);
         // Assumes current activity is the searchable activity
         searchView.setSearchableInfo(searchManager.getSearchableInfo(getComponentName()));
+        searchView.setOnSuggestionListener(new SearchOnSuggestionListener());
 
         MenuItem mediaRouteMenuItem = menu.findItem(R.id.media_route_menu_item);
         MediaRouteActionProvider mediaRouteActionProvider = (MediaRouteActionProvider) MenuItemCompat.getActionProvider(mediaRouteMenuItem);
@@ -290,32 +292,59 @@ public class BibleSearch extends AppCompatActivity implements AdapterView.OnItem
         return this;
     }
 
-    @Override
-    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-        bibleVersion = ((BibleVersion)parent.getItemAtPosition(position)).getId();
-        Log.d(TAG, "BibleVersion: " + bibleVersion);
+    private class SearchOnSuggestionListener implements SearchView.OnSuggestionListener {
+
+        @Override
+        public boolean onSuggestionSelect(int position) {
+            return updateSearchText(position);
+        }
+
+        @Override
+        public boolean onSuggestionClick(int position) {
+            return updateSearchText(position);
+        }
+
+        public boolean updateSearchText(int position) {
+            // http://ramannanda.blogspot.com.au/2014/10/android-searchview-integration-with.html
+            SearchView searchView = (SearchView) findViewById(R.id.searchView);
+
+            Cursor cursor = (Cursor) searchView.getSuggestionsAdapter().getItem(position);
+            String feedName = cursor.getString(1); // column SearchManager.SUGGEST_COLUMN_TEXT_1
+            searchView.setQuery(feedName, false);
+
+            return true;
+        }
     }
 
-    @Override
-    public void onNothingSelected(AdapterView<?> parent) {
+    private class SearchOnItemSelectedListener implements AdapterView.OnItemSelectedListener {
+
+        @Override
+        public void onItemSelected (AdapterView < ? > parent, View view,int position, long id) {
+            bibleVersion = ((BibleVersion) parent.getItemAtPosition(position)).getId();
+            Log.d(TAG, "BibleVersion: " + bibleVersion);
+        }
+
+        @Override
+        public void onNothingSelected (AdapterView < ? > parent){
         int selected = 0;
 
-        for(int i=0; i < versionList.size(); i++) {
+        for (int i = 0; i < versionList.size(); i++) {
             BibleVersion version = versionList.get(i);
-            if(version.getId().equalsIgnoreCase(bibleVersion)) {
+            if (version.getId().equalsIgnoreCase(bibleVersion)) {
                 selected = i;
             }
         }
 
         parent.setSelection(selected);
 
-        if(selected == 0 && versionList.size() > 0) {
+        if (selected == 0 && versionList.size() > 0) {
             bibleVersion = versionList.get(0).getId();
             Log.d(TAG, "BibleVersion: " + bibleVersion);
         }
+        }
     }
 
-    class ScrollOnTouchListener implements View.OnTouchListener {
+    private class ScrollOnTouchListener implements View.OnTouchListener {
 
         private final String TAG = ScrollOnTouchListener.class.getName();
 
@@ -329,7 +358,7 @@ public class BibleSearch extends AppCompatActivity implements AdapterView.OnItem
         }
     }
 
-    class ScrollGestureListener extends GestureDetector.SimpleOnGestureListener {
+    private class ScrollGestureListener extends GestureDetector.SimpleOnGestureListener {
         private final String TAG = ScrollGestureListener.class.getName();
 
         @Override
@@ -356,7 +385,7 @@ public class BibleSearch extends AppCompatActivity implements AdapterView.OnItem
             return false;
         }
 
-        public class FlingRunnable implements Runnable {
+        private class FlingRunnable implements Runnable {
 
             protected MotionEvent e1;
             protected MotionEvent e2;
@@ -547,6 +576,8 @@ public class BibleSearch extends AppCompatActivity implements AdapterView.OnItem
 
             bibleAPI.updateResultList(bookList);
 
+            // TODO make more efficient by comparing, then adding and deleting as needed
+            // http://stackoverflow.com/questions/13733460/android-providing-recent-search-suggestions-without-searchable-activity
             removeAllSuggestions();
 
             for(String book : bookList) {
@@ -556,6 +587,15 @@ public class BibleSearch extends AppCompatActivity implements AdapterView.OnItem
 
         private void removeAllSuggestions() {
             getContentResolver().delete(SearchSuggestionProvider.CONTENT_URI, null, null);
+        }
+
+        private void removeSuggestion(String suggestion) {
+            getContentResolver().delete(SearchSuggestionProvider.CONTENT_URI, suggestion, null);
+        }
+
+        private void checkSuggestion(String suggestion) {
+            // TODO implement
+            getContentResolver().query(SearchSuggestionProvider.CONTENT_URI, null, null, null, null);
         }
 
         private void addSuggestion(String suggestion) {
