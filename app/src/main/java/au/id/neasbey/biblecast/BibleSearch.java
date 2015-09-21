@@ -3,6 +3,7 @@ package au.id.neasbey.biblecast;
 import android.app.Activity;
 import android.app.ProgressDialog;
 import android.app.SearchManager;
+import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
@@ -25,9 +26,9 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.SearchView;
 import android.widget.Spinner;
@@ -41,9 +42,6 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Status;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.LinkedList;
@@ -52,11 +50,13 @@ import java.util.List;
 import au.id.neasbey.biblecast.API.BibleAPI;
 import au.id.neasbey.biblecast.API.BibleAPIConnectionHandler;
 import au.id.neasbey.biblecast.API.BibleAPIResponseParser;
-import au.id.neasbey.biblecast.API.BibleSearchAPIException;
 import au.id.neasbey.biblecast.API.BiblesOrg.BibleAPIBiblesOrg;
 import au.id.neasbey.biblecast.API.BiblesOrg.BibleAPIConnectionHandlerBiblesOrg;
 import au.id.neasbey.biblecast.API.BiblesOrg.BibleAPIResponseParserBiblesOrg;
 import au.id.neasbey.biblecast.API.BibleAPIQueryType;
+import au.id.neasbey.biblecast.model.BibleVersion;
+import au.id.neasbey.biblecast.model.Dimensions;
+import au.id.neasbey.biblecast.util.CastUtils;
 import au.id.neasbey.biblecast.util.HttpUtils;
 import au.id.neasbey.biblecast.util.UIUtils;
 
@@ -92,6 +92,8 @@ public class BibleSearch extends AppCompatActivity {
     private ListView resultView;
 
     private GestureOverlayView gestureView;
+
+    private ImageView scrollImageView;
 
     protected GestureDetectorCompat mDetector;
 
@@ -166,6 +168,8 @@ public class BibleSearch extends AppCompatActivity {
         gestureView.setOnTouchListener(new ScrollOnTouchListener());
         gestureView.setGestureVisible(false);
         mDetector = new GestureDetectorCompat(this, new ScrollGestureListener());
+
+        scrollImageView = (ImageView) findViewById(R.id.scrollImageView);
     }
 
     /**
@@ -212,19 +216,6 @@ public class BibleSearch extends AppCompatActivity {
                 new BibleAPITask().execute(BibleAPIQueryType.SEARCH.name(), getText(R.string.api_search_url).toString(), query.toLowerCase(), bibleVersion);
             }
         }
-        /*else if (Intent.ACTION_VIEW.equals(intent.getAction())) {
-            // Handle a suggestions selection
-            //Uri data = intent.getData();
-            String query = intent.getStringExtra(SearchManager.QUERY).toLowerCase();
-            //String query = data.getLastPathSegment().toLowerCase();
-            new BibleAPITask().execute(query);
-
-            InputMethodManager imm = (InputMethodManager)getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
-
-            if (imm != null) {
-                imm.hideSoftInputFromWindow(getWindowToken(), 0);
-            }
-        }*/
     }
 
     @Override
@@ -380,7 +371,6 @@ public class BibleSearch extends AppCompatActivity {
             Log.d(TAG, "onFling: " + velocityY);
 
             FlingRunnable fr = new FlingRunnable(e1, e2, velocityX, velocityY);
-            fr.run();
 
             return false;
         }
@@ -576,32 +566,7 @@ public class BibleSearch extends AppCompatActivity {
 
             bibleAPI.updateResultList(bookList);
 
-            // TODO make more efficient by comparing, then adding and deleting as needed
-            // http://stackoverflow.com/questions/13733460/android-providing-recent-search-suggestions-without-searchable-activity
-            removeAllSuggestions();
-
-            for(String book : bookList) {
-                addSuggestion(book);
-            }
-        }
-
-        private void removeAllSuggestions() {
-            getContentResolver().delete(SearchSuggestionProvider.CONTENT_URI, null, null);
-        }
-
-        private void removeSuggestion(String suggestion) {
-            getContentResolver().delete(SearchSuggestionProvider.CONTENT_URI, suggestion, null);
-        }
-
-        private void checkSuggestion(String suggestion) {
-            // TODO implement
-            getContentResolver().query(SearchSuggestionProvider.CONTENT_URI, null, null, null, null);
-        }
-
-        private void addSuggestion(String suggestion) {
-            ContentValues values = new ContentValues();
-            values.put(SearchSuggestionProvider.SUGGESTION, suggestion);
-            getContentResolver().insert(SearchSuggestionProvider.CONTENT_URI, values);
+            new SuggestionRunnable(bookList, getContentResolver());
         }
 
         @Override
@@ -615,6 +580,60 @@ public class BibleSearch extends AppCompatActivity {
         private void closeDialog() {
             if(progressDialog != null && progressDialog.isShowing()) {
                 progressDialog.dismiss();
+            }
+        }
+
+        private class SuggestionRunnable implements Runnable {
+            List<String> suggestions;
+            ContentResolver contentResolver;
+            ContentValues contentValues;
+
+            SuggestionRunnable(List<String> suggestions, ContentResolver contentResolver) {
+                this.suggestions = suggestions;
+                this.contentResolver = contentResolver;
+            }
+
+            public void run() {
+                // TODO make more efficient by comparing, then adding and deleting as needed
+                // http://stackoverflow.com/questions/13733460/android-providing-recent-search-suggestions-without-searchable-activity
+                removeAllSuggestions();
+
+
+                for(String suggestion : suggestions) {
+                    addSuggestion(suggestion);
+                }
+            }
+
+            private void removeAllSuggestions() {
+                if(contentResolver != null) {
+                    contentResolver.delete(SearchSuggestionProvider.CONTENT_URI, null, null);
+                }
+            }
+
+            private void removeSuggestion(String suggestion) {
+                if(contentResolver != null) {
+                    contentResolver.delete(SearchSuggestionProvider.CONTENT_URI, suggestion, null);
+                }
+            }
+
+            private void addSuggestion(String suggestion) {
+                if(contentValues == null) {
+                    contentValues = new ContentValues();
+                }
+
+                contentValues.clear();
+                contentValues.put(SearchSuggestionProvider.SUGGESTION, suggestion);
+
+                if(contentResolver != null) {
+                    contentResolver.insert(SearchSuggestionProvider.CONTENT_URI, contentValues);
+                }
+            }
+
+            private void checkSuggestion(String suggestion) {
+                // TODO implement
+                if(contentResolver != null) {
+                    contentResolver.query(SearchSuggestionProvider.CONTENT_URI, null, null, null, null);
+                }
             }
         }
     }
@@ -675,16 +694,14 @@ public class BibleSearch extends AppCompatActivity {
 
     private void showGestureView() {
         if(gestureView != null) {
-            if(resultView != null) {
-                ViewGroup.LayoutParams layoutParams = gestureView.getLayoutParams();
-                layoutParams.height = resultView.getHeight();
-                layoutParams.width = resultView.getWidth();
-                gestureView.setLayoutParams(layoutParams);
-                Log.d(TAG, "gestureView params w: " + layoutParams.width + " h: " + layoutParams.height);
-            }
-
             gestureView.setVisibility(View.VISIBLE);
             Log.d(TAG, "Shown gestureView");
+
+            if(scrollImageView != null) {
+                scrollImageView.setVisibility(View.VISIBLE);
+                Log.d(TAG, "Shown scrollImageView");
+            }
+
         }
     }
 
@@ -692,6 +709,11 @@ public class BibleSearch extends AppCompatActivity {
         if(gestureView != null) {
             gestureView.setVisibility(View.INVISIBLE);
             Log.d(TAG, "Hidden gestureView");
+        }
+
+        if(scrollImageView != null) {
+            scrollImageView.setVisibility(View.INVISIBLE);
+            Log.d(TAG, "Hidden scrollImageView");
         }
     }
 
@@ -732,74 +754,11 @@ public class BibleSearch extends AppCompatActivity {
         if(!TextUtils.isEmpty(message)) {
 
             try {
-                Dimensions dimensions = parseMessageForDimensions(message);
-            } catch (BibleSearchAPIException e) {
+                // Is currently not used. Demonstrates multi-direction JSON communication with google cast
+                Dimensions dimensions = CastUtils.parseMessageForDimensions(message);
+            } catch (BiblecastException e) {
                 Log.d(TAG, e.getMessage());
             }
-        }
-    }
-
-    // TODO move to class and test
-
-    private static final String dimensionsKey = "dimensions";
-
-    private static final String heightKey = "height";
-
-    private static final String widthKey = "width";
-
-
-    private Dimensions parseMessageForDimensions(String jsonMessage) throws BibleSearchAPIException {
-
-        int width = 0;
-        int height = 0;
-
-        if(!TextUtils.isEmpty(jsonMessage)) {
-
-            // Creates a new JSONObject with name/value mappings from the JSON string
-            try {
-                JSONObject jsonValues = new JSONObject(jsonMessage);
-
-                // Get dimension values
-                JSONObject dimensionsValues = jsonValues.getJSONObject(dimensionsKey);
-                width = dimensionsValues.optInt(widthKey, width);
-                height = dimensionsValues.optInt(heightKey, height);
-
-            } catch (JSONException e) {
-                throw new BibleSearchAPIException("JSON does not contain dimension data");
-            }
-        }
-
-        return new Dimensions(width, height);
-    }
-
-    public class Dimensions {
-        private int width;
-        private int height;
-
-        public Dimensions() {
-            this.width = 0;
-            this.height = 0;
-        }
-
-        public Dimensions(int width, int height) {
-            this.width = width;
-            this.height = height;
-        }
-
-        public int getWidth() {
-            return width;
-        }
-
-        public void setWidth(int width) {
-            this.width = width;
-        }
-
-        public int getHeight() {
-            return height;
-        }
-
-        public void setHeight(int height) {
-            this.height = height;
         }
     }
 
@@ -928,7 +887,7 @@ public class BibleSearch extends AppCompatActivity {
                                         if (resultsExist) {
                                             sendMessage(HttpUtils.listToJSON(resultList));
                                         } else {
-                                            sendMessage(getString(R.string.instructions));
+                                            sendMessage(getString(R.string.cast_instructions));
                                         }
                                     } else {
                                         Log.e(TAG, "Application could not launch");

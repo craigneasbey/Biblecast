@@ -12,8 +12,8 @@ import java.util.List;
 
 import au.id.neasbey.biblecast.API.BibleAPIResponse;
 import au.id.neasbey.biblecast.API.BibleAPIResponseParser;
-import au.id.neasbey.biblecast.API.BibleSearchAPIException;
-import au.id.neasbey.biblecast.BibleVersion;
+import au.id.neasbey.biblecast.BiblecastException;
+import au.id.neasbey.biblecast.model.BibleVersion;
 import au.id.neasbey.biblecast.R;
 import au.id.neasbey.biblecast.util.SequenceNumber;
 import au.id.neasbey.biblecast.util.UIUtils;
@@ -42,16 +42,16 @@ public class BibleAPIResponseParserBiblesOrg extends BibleAPIResponseParser {
     /**
      * Checks the response code from the Bibles.org Bible API server
      *
-     * @throws BibleSearchAPIException
+     * @throws BiblecastException
      */
     @Override
-    public void parseResponseStatus(int responseCode, String responseMessage) throws BibleSearchAPIException {
+    public void parseResponseStatus(int responseCode, String responseMessage) throws BiblecastException {
         if (responseCode == BibleAPIResponse.RESPONSE_CODE_UNAUTHORIZED) {
-            throw new BibleSearchAPIException(UIUtils.getContext().getString(R.string.api_bible_org_incorrect));
+            throw new BiblecastException(UIUtils.getContext().getString(R.string.api_bible_org_incorrect));
         }
 
         if (responseCode != BibleAPIResponse.RESPONSE_CODE_OK) {
-            throw new BibleSearchAPIException(responseCode + " - " + responseMessage);
+            throw new BiblecastException(responseCode + " - " + responseMessage);
         }
     }
 
@@ -60,20 +60,20 @@ public class BibleAPIResponseParserBiblesOrg extends BibleAPIResponseParser {
      *
      * @param responseString Response string
      * @return Result list after parsing the response string
-     * @throws BibleSearchAPIException
+     * @throws BiblecastException
      */
     @Override
-    public List<Spanned> parseResponseDataToSpannedList(String responseString) throws BibleSearchAPIException {
+    public List<Spanned> parseResponseDataToSpannedList(String responseString) throws BiblecastException {
         return parseJSONToList(responseString);
     }
 
     @Override
-    public List<BibleVersion> parseResponseDataToVersionList(String responseString) throws BibleSearchAPIException {
+    public List<BibleVersion> parseResponseDataToVersionList(String responseString) throws BiblecastException {
         return parseJSONToVersionList(responseString);
     }
 
     @Override
-    public List<String> parseResponseDataToStringList(String responseString) throws BibleSearchAPIException {
+    public List<String> parseResponseDataToStringList(String responseString) throws BiblecastException {
         return parseJSONToStringList(responseString);
     }
 
@@ -84,7 +84,7 @@ public class BibleAPIResponseParserBiblesOrg extends BibleAPIResponseParser {
      * @return List of HTML elements
      * @throws Exception Allows JSON parse exceptions to be translated for the app
      */
-    public List<Spanned> parseJSONToList(String jsonString) throws BibleSearchAPIException {
+    public List<Spanned> parseJSONToList(String jsonString) throws BiblecastException {
 
         SequenceNumber sq = new SequenceNumber();
 
@@ -129,11 +129,11 @@ public class BibleAPIResponseParserBiblesOrg extends BibleAPIResponseParser {
             }
 
             if (!results) {
-                throw new BibleSearchAPIException(UIUtils.getContext().getString(R.string.api_no_results));
+                throw new BiblecastException(UIUtils.getContext().getString(R.string.api_no_results));
             }
         } catch (JSONException e) {
 
-            throw new BibleSearchAPIException(e.getMessage());
+            throw new BiblecastException(e.getMessage());
         }
 
         return resultList;
@@ -212,7 +212,7 @@ public class BibleAPIResponseParserBiblesOrg extends BibleAPIResponseParser {
         return results;
     }
 
-    private List<BibleVersion> parseJSONToVersionList(String jsonString) throws BibleSearchAPIException {
+    private List<BibleVersion> parseJSONToVersionList(String jsonString) throws BiblecastException {
 
         List<BibleVersion> resultList = new LinkedList<>();
 
@@ -231,11 +231,11 @@ public class BibleAPIResponseParserBiblesOrg extends BibleAPIResponseParser {
             }
 
             if (!results) {
-                throw new BibleSearchAPIException(UIUtils.getContext().getString(R.string.api_no_results));
+                throw new BiblecastException(UIUtils.getContext().getString(R.string.api_no_results));
             }
         } catch (JSONException e) {
 
-            throw new BibleSearchAPIException(e.getMessage());
+            throw new BiblecastException(e.getMessage());
         }
 
         return resultList;
@@ -273,7 +273,7 @@ public class BibleAPIResponseParserBiblesOrg extends BibleAPIResponseParser {
         return results;
     }
 
-    private List<String> parseJSONToStringList(String jsonString) throws BibleSearchAPIException {
+    private List<String> parseJSONToStringList(String jsonString) throws BiblecastException {
         List<String> resultList = new LinkedList<>();
 
         try {
@@ -291,11 +291,11 @@ public class BibleAPIResponseParserBiblesOrg extends BibleAPIResponseParser {
             }
 
             if (!results) {
-                throw new BibleSearchAPIException(UIUtils.getContext().getString(R.string.api_no_results));
+                throw new BiblecastException(UIUtils.getContext().getString(R.string.api_no_results));
             }
         } catch (JSONException e) {
 
-            throw new BibleSearchAPIException(e.getMessage());
+            throw new BiblecastException(e.getMessage());
         }
 
         return resultList;

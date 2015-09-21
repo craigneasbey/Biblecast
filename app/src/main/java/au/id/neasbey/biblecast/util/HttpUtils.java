@@ -8,7 +8,7 @@ import java.net.URLEncoder;
 import java.util.List;
 import java.util.Map;
 
-import au.id.neasbey.biblecast.API.BibleSearchAPIException;
+import au.id.neasbey.biblecast.BiblecastException;
 
 /**
  * Created by craigneasbey on 11/08/15.
@@ -28,9 +28,9 @@ public class HttpUtils {
      *
      * @param map Key/Vale strings to encode
      * @return Encoded string
-     * @throws BibleSearchAPIException
+     * @throws BiblecastException
      */
-    public static String urlEncodeUTF8(Map<?, ?> map) throws BibleSearchAPIException {
+    public static String urlEncodeUTF8(Map<?, ?> map) throws BiblecastException {
         StringBuilder sb = new StringBuilder();
 
         try {
@@ -44,7 +44,7 @@ public class HttpUtils {
                 sb.append(urlEncodeUTF8(entry.getValue().toString()));
             }
         } catch (UnsupportedOperationException uoe) {
-            throw new BibleSearchAPIException("URL parameter encoding error: " + uoe.getMessage());
+            throw new BiblecastException("URL parameter encoding error: " + uoe.getMessage());
         }
 
         return sb.toString();

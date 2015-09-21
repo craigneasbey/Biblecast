@@ -1,4 +1,4 @@
-package au.id.neasbey.biblecast;
+package au.id.neasbey.biblecast.model;
 
 import java.io.Serializable;
 

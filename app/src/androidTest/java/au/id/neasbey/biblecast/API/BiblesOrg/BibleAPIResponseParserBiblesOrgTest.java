@@ -13,8 +13,8 @@ import java.util.List;
 
 import au.id.neasbey.biblecast.API.BibleAPIResponse;
 import au.id.neasbey.biblecast.API.BibleAPIResponseParser;
-import au.id.neasbey.biblecast.API.BibleSearchAPIException;
-import au.id.neasbey.biblecast.BibleVersion;
+import au.id.neasbey.biblecast.BiblecastException;
+import au.id.neasbey.biblecast.model.BibleVersion;
 import au.id.neasbey.biblecast.util.UIUtils;
 
 /**
@@ -171,7 +171,7 @@ public class BibleAPIResponseParserBiblesOrgTest extends TestCase {
 
         try {
             objectUnderTest.parseResponseStatus(BibleAPIResponse.RESPONSE_CODE_OK, BibleAPIResponse.RESPONSE_MESSAGE_OK);
-        } catch (BibleSearchAPIException bsae) {
+        } catch (BiblecastException bsae) {
             actualException = bsae.getMessage();
         }
 
@@ -185,7 +185,7 @@ public class BibleAPIResponseParserBiblesOrgTest extends TestCase {
 
         try {
             objectUnderTest.parseResponseStatus(BibleAPIResponse.RESPONSE_CODE_NOT_FOUND, BibleAPIResponse.RESPONSE_MESSAGE_NOT_FOUND);
-        } catch (BibleSearchAPIException bsae) {
+        } catch (BiblecastException bsae) {
             actualException = bsae.getMessage();
         }
 
@@ -201,7 +201,7 @@ public class BibleAPIResponseParserBiblesOrgTest extends TestCase {
 
         try {
             objectUnderTest.parseResponseStatus(BibleAPIResponse.RESPONSE_CODE_UNAUTHORIZED, BibleAPIResponse.RESPONSE_MESSAGE_UNAUTHORIZED);
-        } catch (BibleSearchAPIException bsae) {
+        } catch (BiblecastException bsae) {
             actualException = bsae.getMessage();
         }
 
@@ -218,7 +218,7 @@ public class BibleAPIResponseParserBiblesOrgTest extends TestCase {
 
         try {
             actualList = objectUnderTest.parseResponseDataToSpannedList(jsonTextToParse);
-        } catch(BibleSearchAPIException bsae) {
+        } catch(BiblecastException bsae) {
             actualException = bsae.getMessage();
         }
 
@@ -238,7 +238,7 @@ public class BibleAPIResponseParserBiblesOrgTest extends TestCase {
 
         try {
             actualList = objectUnderTest.parseResponseDataToSpannedList(jsonTextToParse);
-        } catch(BibleSearchAPIException bsae) {
+        } catch(BiblecastException bsae) {
              actualException = bsae.getMessage();
         }
 
@@ -257,7 +257,7 @@ public class BibleAPIResponseParserBiblesOrgTest extends TestCase {
 
         try {
             actualList = objectUnderTest.parseResponseDataToSpannedList(jsonTextToParse);
-        } catch(BibleSearchAPIException bsae) {
+        } catch(BiblecastException bsae) {
             actualException = bsae.getMessage();
         }
 
@@ -277,7 +277,7 @@ public class BibleAPIResponseParserBiblesOrgTest extends TestCase {
 
         try {
             actualList = objectUnderTest.parseResponseDataToSpannedList(jsonTextToParse);
-        } catch(BibleSearchAPIException bsae) {
+        } catch(BiblecastException bsae) {
             actualException = bsae.getMessage();
         }
 

@@ -6,7 +6,8 @@ import android.util.Log;
 
 import java.util.List;
 
-import au.id.neasbey.biblecast.BibleVersion;
+import au.id.neasbey.biblecast.BiblecastException;
+import au.id.neasbey.biblecast.model.BibleVersion;
 import au.id.neasbey.biblecast.R;
 import au.id.neasbey.biblecast.util.UIUtils;
 import au.id.neasbey.biblecast.util.URLWrapper;
@@ -76,7 +77,7 @@ public abstract class BibleAPI {
                 default:
                     setReturnedList(getBibleAPIResponseParser().parseResponseDataToSpannedList(bibleAPIResponse.getResponseData()));
             }
-        } catch (BibleSearchAPIException bsae) {
+        } catch (BiblecastException bsae) {
             return bsae.getMessage();
         }
 
@@ -88,12 +89,12 @@ public abstract class BibleAPI {
      * Note: Changed protected to public class access for testing
      *
      * @return Complete URL with encoded parameters
-     * @throws BibleSearchAPIException
+     * @throws BiblecastException
      */
-    public String getRequestURL() throws BibleSearchAPIException {
+    public String getRequestURL() throws BiblecastException {
 
         if (TextUtils.isEmpty(getURL())) {
-            throw new BibleSearchAPIException(UIUtils.getContext().getString(R.string.api_no_url));
+            throw new BiblecastException(UIUtils.getContext().getString(R.string.api_no_url));
         }
 
         StringBuilder requestText = new StringBuilder();
@@ -110,9 +111,9 @@ public abstract class BibleAPI {
      * Checks the API parameters, then encodes them
      *
      * @return Encoded parameters for the API URL
-     * @throws BibleSearchAPIException
+     * @throws BiblecastException
      */
-    public abstract String getRequestParameters() throws BibleSearchAPIException;
+    public abstract String getRequestParameters() throws BiblecastException;
 
     /**
      * Checks if results are returned

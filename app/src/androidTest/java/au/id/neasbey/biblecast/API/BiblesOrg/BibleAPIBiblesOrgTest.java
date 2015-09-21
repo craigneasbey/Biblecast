@@ -14,7 +14,7 @@ import au.id.neasbey.biblecast.API.BibleAPIConnectionHandler;
 import au.id.neasbey.biblecast.API.BibleAPIQueryType;
 import au.id.neasbey.biblecast.API.BibleAPIResponse;
 import au.id.neasbey.biblecast.API.BibleAPIResponseParser;
-import au.id.neasbey.biblecast.BibleVersion;
+import au.id.neasbey.biblecast.model.BibleVersion;
 import au.id.neasbey.biblecast.util.URLWrapper;
 
 import static org.mockito.Matchers.any;

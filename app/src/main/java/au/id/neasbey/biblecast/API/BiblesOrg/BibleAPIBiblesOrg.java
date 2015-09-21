@@ -7,9 +7,8 @@ import java.util.Map;
 
 import au.id.neasbey.biblecast.API.BibleAPI;
 import au.id.neasbey.biblecast.API.BibleAPIConnectionHandler;
-import au.id.neasbey.biblecast.API.BibleAPIQueryType;
 import au.id.neasbey.biblecast.API.BibleAPIResponseParser;
-import au.id.neasbey.biblecast.API.BibleSearchAPIException;
+import au.id.neasbey.biblecast.BiblecastException;
 import au.id.neasbey.biblecast.R;
 import au.id.neasbey.biblecast.util.HttpUtils;
 import au.id.neasbey.biblecast.util.UIUtils;
@@ -47,19 +46,19 @@ public class BibleAPIBiblesOrg extends BibleAPI {
      * Checks the API parameters, then encodes them
      *
      * @return Encoded parameters for the API URL
-     * @throws BibleSearchAPIException
+     * @throws BiblecastException
      */
     @Override
-    public String getRequestParameters() throws BibleSearchAPIException {
+    public String getRequestParameters() throws BiblecastException {
 
         switch (getQueryType()) {
             case SEARCH:
                 if (TextUtils.isEmpty(getQuery())) {
-                    throw new BibleSearchAPIException(UIUtils.getContext().getString(R.string.api_no_query));
+                    throw new BiblecastException(UIUtils.getContext().getString(R.string.api_no_query));
                 }
 
                 if (TextUtils.isEmpty(getVersions())) {
-                    throw new BibleSearchAPIException(UIUtils.getContext().getString(R.string.api_no_version));
+                    throw new BiblecastException(UIUtils.getContext().getString(R.string.api_no_version));
                 }
 
                 Map<String, String> searchParameters = new HashMap<>();
@@ -69,7 +68,7 @@ public class BibleAPIBiblesOrg extends BibleAPI {
                 return "?" + HttpUtils.urlEncodeUTF8(searchParameters);
             case VERSION:
                 if (TextUtils.isEmpty(getLanguage())) {
-                    throw new BibleSearchAPIException(UIUtils.getContext().getString(R.string.api_no_language));
+                    throw new BiblecastException(UIUtils.getContext().getString(R.string.api_no_language));
                 }
 
                 Map<String, String> versionParameters = new HashMap<>();

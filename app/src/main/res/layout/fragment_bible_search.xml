@@ -39,10 +39,26 @@
         android:layout_below="@+id/searchView" />
 
     <android.gesture.GestureOverlayView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
         android:id="@+id/gestureView"
         android:layout_below="@+id/searchView"
-        android:visibility="invisible" />
+        android:visibility="invisible"
+        android:layout_centerHorizontal="true" />
+
+    <ImageView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/scrollImageView"
+        android:layout_alignParentEnd="false"
+        android:layout_alignTop="@id/gestureView"
+        android:layout_alignBottom="@id/gestureView"
+        android:visibility="invisible"
+        android:contentDescription="@string/cast_scroll_image_alt"
+        android:layout_centerHorizontal="true"
+        android:focusableInTouchMode="false"
+        android:focusable="false"
+        android:src="@drawable/scroll"
+        android:scaleType="fitCenter"/>
 
 </RelativeLayout>

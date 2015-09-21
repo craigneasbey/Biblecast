@@ -7,7 +7,7 @@ import java.net.Authenticator;
 import java.net.PasswordAuthentication;
 
 import au.id.neasbey.biblecast.API.BibleAPIConnectionHandler;
-import au.id.neasbey.biblecast.API.BibleSearchAPIException;
+import au.id.neasbey.biblecast.BiblecastException;
 import au.id.neasbey.biblecast.R;
 import au.id.neasbey.biblecast.util.UIUtils;
 
@@ -23,13 +23,13 @@ public class BibleAPIConnectionHandlerBiblesOrg extends BibleAPIConnectionHandle
     /**
      * Sets the default authenticator for HTTP connections
      *
-     * @throws BibleSearchAPIException
+     * @throws BiblecastException
      */
     @Override
-    protected void authenticate() throws BibleSearchAPIException {
+    protected void authenticate() throws BiblecastException {
 
         if (TextUtils.isEmpty(getUsername())) {
-            throw new BibleSearchAPIException(UIUtils.getContext().getString(R.string.api_no_auth));
+            throw new BiblecastException(UIUtils.getContext().getString(R.string.api_no_auth));
         }
 
         // Password is not required for Bibles.org API

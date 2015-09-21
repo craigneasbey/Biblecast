@@ -32,6 +32,7 @@ Add Bibles.org API token with a trailing colon to Biblecast/app/src/main/res/val
 * http://daringfireball.net/projects/markdown/syntax
 * http://stackoverflow.com/questions/496651/connecting-to-remote-url-which-requires-authentication-using-java
 * https://romannurik.github.io/AndroidAssetStudio/icons-launcher.html
+* https://romannurik.github.io/AndroidAssetStudio/nine-patches.html
 * http://inthecheesefactory.com/blog/how-to-upload-library-to-jcenter-maven-central-as-dependency/en
 * http://www.vogella.com/tutorials/Mockito/article.html#mockito_android
 * http://jesusalive.cc/didyouknow.htm
