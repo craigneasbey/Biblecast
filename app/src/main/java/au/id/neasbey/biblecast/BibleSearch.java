@@ -3,6 +3,7 @@ package au.id.neasbey.biblecast;
 import android.app.Activity;
 import android.app.ProgressDialog;
 import android.app.SearchManager;
+import android.content.AsyncQueryHandler;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
@@ -79,6 +80,8 @@ public class BibleSearch extends AppCompatActivity {
 
     private String bibleVersion;
 
+    private Spinner versionSpinner;
+
     private List<BibleVersion> versionList;
 
     private ArrayAdapter<BibleVersion> versionAdapter;
@@ -145,9 +148,9 @@ public class BibleSearch extends AppCompatActivity {
         versionAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, versionList);
         versionAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 
-        Spinner spinner = (Spinner) findViewById(R.id.versionSpinner);
-        spinner.setAdapter(versionAdapter);
-        spinner.setOnItemSelectedListener(new SearchOnItemSelectedListener());
+        versionSpinner = (Spinner) findViewById(R.id.versionSpinner);
+        versionSpinner.setAdapter(versionAdapter);
+        versionSpinner.setOnItemSelectedListener(new SearchOnItemSelectedListener());
     }
 
     /**
@@ -300,7 +303,7 @@ public class BibleSearch extends AppCompatActivity {
             SearchView searchView = (SearchView) findViewById(R.id.searchView);
 
             Cursor cursor = (Cursor) searchView.getSuggestionsAdapter().getItem(position);
-            String feedName = cursor.getString(1); // column SearchManager.SUGGEST_COLUMN_TEXT_1
+            String feedName = cursor.getString(cursor.getColumnIndex(SearchSuggestionProvider.SUGGESTION));
             searchView.setQuery(feedName, false);
 
             return true;
@@ -310,28 +313,28 @@ public class BibleSearch extends AppCompatActivity {
     private class SearchOnItemSelectedListener implements AdapterView.OnItemSelectedListener {
 
         @Override
-        public void onItemSelected (AdapterView < ? > parent, View view,int position, long id) {
+        public void onItemSelected (AdapterView<?> parent, View view,int position, long id) {
             bibleVersion = ((BibleVersion) parent.getItemAtPosition(position)).getId();
             Log.d(TAG, "BibleVersion: " + bibleVersion);
         }
 
         @Override
-        public void onNothingSelected (AdapterView < ? > parent){
-        int selected = 0;
+        public void onNothingSelected (AdapterView<?> parent) {
+            int selected = 0;
 
-        for (int i = 0; i < versionList.size(); i++) {
-            BibleVersion version = versionList.get(i);
-            if (version.getId().equalsIgnoreCase(bibleVersion)) {
-                selected = i;
+            for (int i = 0; i < versionList.size(); i++) {
+                BibleVersion version = versionList.get(i);
+                if (version.getId().equalsIgnoreCase(bibleVersion)) {
+                    selected = i;
+                }
             }
-        }
 
-        parent.setSelection(selected);
+            parent.setSelection(selected);
 
-        if (selected == 0 && versionList.size() > 0) {
-            bibleVersion = versionList.get(0).getId();
-            Log.d(TAG, "BibleVersion: " + bibleVersion);
-        }
+            if (selected == 0 && versionList.size() > 0) {
+                bibleVersion = versionList.get(0).getId();
+                Log.d(TAG, "BibleVersion: " + bibleVersion);
+            }
         }
     }
 
@@ -370,7 +373,7 @@ public class BibleSearch extends AppCompatActivity {
                                float velocityY) {
             Log.d(TAG, "onFling: " + velocityY);
 
-            FlingRunnable fr = new FlingRunnable(e1, e2, velocityX, velocityY);
+            new FlingRunnable(e1, e2, velocityX, velocityY).run();
 
             return false;
         }
@@ -560,13 +563,37 @@ public class BibleSearch extends AppCompatActivity {
 
             // Notify the list adapter the data has changed
             versionAdapter.notifyDataSetChanged();
+
+            // Set default bible version
+            int position = versionAdapter.getPosition(findBibleVersionById(versionList, DEFAULT_VERSION));
+
+            if(position >= 0) {
+                versionSpinner.setSelection(position);
+            }
+        }
+
+        /**
+         * Finds a BibleVersion from a list by ID
+         * @param versionList List of BibleVersions
+         * @param versionId ID of the BibleVersion to find
+         * @return Found BibleVersion or null if not found
+         */
+        private BibleVersion findBibleVersionById(List<BibleVersion> versionList, String versionId) {
+
+            for(BibleVersion bibleVersion : versionList) {
+                if(bibleVersion.getId().equalsIgnoreCase(versionId)) {
+                    return bibleVersion;
+                }
+            }
+
+            return null;
         }
 
         private void handleBookResults() {
 
             bibleAPI.updateResultList(bookList);
 
-            new SuggestionRunnable(bookList, getContentResolver());
+            new SuggestionRunnable(bookList, getContentResolver()).run();
         }
 
         @Override
@@ -584,9 +611,11 @@ public class BibleSearch extends AppCompatActivity {
         }
 
         private class SuggestionRunnable implements Runnable {
+            private final String TAG = SuggestionRunnable.class.getSimpleName();
+
             List<String> suggestions;
             ContentResolver contentResolver;
-            ContentValues contentValues;
+            SuggestionAsyncQueryHandler suggestionAsyncQueryHandler;
 
             SuggestionRunnable(List<String> suggestions, ContentResolver contentResolver) {
                 this.suggestions = suggestions;
@@ -594,46 +623,90 @@ public class BibleSearch extends AppCompatActivity {
             }
 
             public void run() {
-                // TODO make more efficient by comparing, then adding and deleting as needed
-                // http://stackoverflow.com/questions/13733460/android-providing-recent-search-suggestions-without-searchable-activity
-                removeAllSuggestions();
+                suggestionAsyncQueryHandler = new SuggestionAsyncQueryHandler(contentResolver);
 
-
-                for(String suggestion : suggestions) {
-                    addSuggestion(suggestion);
-                }
+                compareSuggestions();
             }
 
             private void removeAllSuggestions() {
-                if(contentResolver != null) {
-                    contentResolver.delete(SearchSuggestionProvider.CONTENT_URI, null, null);
+                Log.d(TAG, "Remove all suggestions");
+                if(suggestionAsyncQueryHandler != null) {
+                    suggestionAsyncQueryHandler.startDelete(0, null, SearchSuggestionProvider.CONTENT_URI, null, null);
                 }
             }
 
             private void removeSuggestion(String suggestion) {
-                if(contentResolver != null) {
-                    contentResolver.delete(SearchSuggestionProvider.CONTENT_URI, suggestion, null);
+                Log.d(TAG, "Remove suggestion: " + suggestion);
+                if(suggestionAsyncQueryHandler != null) {
+                    suggestionAsyncQueryHandler.startDelete(0, null, SearchSuggestionProvider.CONTENT_URI, suggestion, null);
                 }
             }
 
             private void addSuggestion(String suggestion) {
-                if(contentValues == null) {
-                    contentValues = new ContentValues();
-                }
+                Log.d(TAG, "Add suggestion: " + suggestion);
 
-                contentValues.clear();
+                ContentValues contentValues = new ContentValues();
                 contentValues.put(SearchSuggestionProvider.SUGGESTION, suggestion);
 
-                if(contentResolver != null) {
-                    contentResolver.insert(SearchSuggestionProvider.CONTENT_URI, contentValues);
+                if(suggestionAsyncQueryHandler != null) {
+                    //AsyncQueryHandler asyncQueryHandler = new AsyncQueryHandler(contentResolver);
+                    suggestionAsyncQueryHandler.startInsert(0, null, SearchSuggestionProvider.CONTENT_URI, contentValues);
                 }
             }
 
-            private void checkSuggestion(String suggestion) {
-                // TODO implement
+
+            private void compareSuggestions() {
                 if(contentResolver != null) {
-                    contentResolver.query(SearchSuggestionProvider.CONTENT_URI, null, null, null, null);
+                    List<String> currentSuggestions = new LinkedList<>();
+
+                    Cursor suggestionsCursor = contentResolver.query(SearchSuggestionProvider.CONTENT_URI, null, null, null, null);
+
+                    // add current suggestions to memory
+                    while(suggestionsCursor.moveToNext()) {
+                        currentSuggestions.add(suggestionsCursor.getString(suggestionsCursor.getColumnIndex(SearchSuggestionProvider.SUGGESTION)));
+                    }
+
+                    suggestionsCursor.close();
+
+                    // check all current suggestions for missing new suggestions, if found add
+                    boolean found;
+
+                    for (String suggestion : suggestions) {
+                        found = false;
+                        for (String currentSuggestion : currentSuggestions) {
+                            if (currentSuggestion.equalsIgnoreCase(suggestion)) {
+                                found = true;
+                                break;
+                            }
+                        }
+
+                        if (!found) {
+                            addSuggestion(suggestion);
+                        }
+                    }
+
+                    // check all new suggestions for missing current suggestions, if found remove
+                    for (String currentSuggestion : currentSuggestions) {
+                        found = false;
+                        for (String suggestion : suggestions) {
+                            if (currentSuggestion.equalsIgnoreCase(suggestion)) {
+                                found = true;
+                                break;
+                            }
+                        }
+
+                        if (!found) {
+                            removeSuggestion(currentSuggestion);
+                        }
+                    }
                 }
+            }
+        }
+
+        private class SuggestionAsyncQueryHandler extends AsyncQueryHandler {
+
+            public SuggestionAsyncQueryHandler(ContentResolver cr) {
+                super(cr);
             }
         }
     }
