@@ -7,7 +7,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 
-import au.id.neasbey.biblecast.BiblecastException;
+import au.id.neasbey.biblecast.exception.BiblecastException;
 import au.id.neasbey.biblecast.R;
 import au.id.neasbey.biblecast.util.UIUtils;
 import au.id.neasbey.biblecast.util.URLWrapper;

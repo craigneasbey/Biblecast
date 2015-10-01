@@ -5,7 +5,7 @@ import android.text.TextUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import au.id.neasbey.biblecast.BiblecastException;
+import au.id.neasbey.biblecast.exception.BiblecastException;
 import au.id.neasbey.biblecast.model.Dimensions;
 
 /**

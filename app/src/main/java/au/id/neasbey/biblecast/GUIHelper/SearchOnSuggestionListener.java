@@ -1,4 +1,4 @@
-package au.id.neasbey.biblecast;
+package au.id.neasbey.biblecast.GUIHelper;
 
 import android.database.Cursor;
 import android.widget.SearchView;

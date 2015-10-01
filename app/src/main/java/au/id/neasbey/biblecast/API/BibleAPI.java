@@ -6,7 +6,7 @@ import android.util.Log;
 
 import java.util.List;
 
-import au.id.neasbey.biblecast.BiblecastException;
+import au.id.neasbey.biblecast.exception.BiblecastException;
 import au.id.neasbey.biblecast.model.BibleVersion;
 import au.id.neasbey.biblecast.R;
 import au.id.neasbey.biblecast.util.UIUtils;

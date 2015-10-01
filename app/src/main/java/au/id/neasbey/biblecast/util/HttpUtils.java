@@ -8,7 +8,7 @@ import java.net.URLEncoder;
 import java.util.List;
 import java.util.Map;
 
-import au.id.neasbey.biblecast.BiblecastException;
+import au.id.neasbey.biblecast.exception.BiblecastException;
 
 /**
  * Created by craigneasbey on 11/08/15.

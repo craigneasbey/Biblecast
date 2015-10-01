@@ -7,7 +7,7 @@ import java.net.Authenticator;
 import java.net.PasswordAuthentication;
 
 import au.id.neasbey.biblecast.API.BibleAPIConnectionHandler;
-import au.id.neasbey.biblecast.BiblecastException;
+import au.id.neasbey.biblecast.exception.BiblecastException;
 import au.id.neasbey.biblecast.R;
 import au.id.neasbey.biblecast.util.UIUtils;
 

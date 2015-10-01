@@ -1,4 +1,4 @@
-package au.id.neasbey.biblecast;
+package au.id.neasbey.biblecast.exception;
 
 /**
  * Created by craigneasbey on 11/08/15.

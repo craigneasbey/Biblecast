@@ -27,7 +27,7 @@
             <meta-data android:name="android.app.default_searchable"
                 android:value=".BibleSearch" />
         </activity>
-        <provider android:name=".SearchSuggestionProvider"
+        <provider android:name=".GUIHelper.SearchSuggestionProvider"
             android:authorities="au.id.neasbey.biblecast.SearchSuggestion">
         </provider>
 

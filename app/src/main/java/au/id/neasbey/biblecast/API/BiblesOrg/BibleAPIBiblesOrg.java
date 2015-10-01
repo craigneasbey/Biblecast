@@ -8,7 +8,7 @@ import java.util.Map;
 import au.id.neasbey.biblecast.API.BibleAPI;
 import au.id.neasbey.biblecast.API.BibleAPIConnectionHandler;
 import au.id.neasbey.biblecast.API.BibleAPIResponseParser;
-import au.id.neasbey.biblecast.BiblecastException;
+import au.id.neasbey.biblecast.exception.BiblecastException;
 import au.id.neasbey.biblecast.R;
 import au.id.neasbey.biblecast.util.HttpUtils;
 import au.id.neasbey.biblecast.util.UIUtils;

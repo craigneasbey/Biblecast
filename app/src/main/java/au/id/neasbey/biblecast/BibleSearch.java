@@ -3,61 +3,38 @@ package au.id.neasbey.biblecast;
 import android.app.Activity;
 import android.app.ProgressDialog;
 import android.app.SearchManager;
-import android.content.AsyncQueryHandler;
-import android.content.ContentResolver;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
-import android.database.Cursor;
 import android.gesture.GestureOverlayView;
-import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.CountDownTimer;
 import android.support.v4.view.GestureDetectorCompat;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.app.MediaRouteActionProvider;
-import android.support.v7.media.MediaRouteSelector;
-import android.support.v7.media.MediaRouter;
 import android.text.Spanned;
 import android.text.TextUtils;
 import android.util.Log;
-import android.view.GestureDetector;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
-import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.SearchView;
 import android.widget.Spinner;
 
-import com.google.android.gms.cast.ApplicationMetadata;
-import com.google.android.gms.cast.Cast;
-import com.google.android.gms.cast.CastDevice;
-import com.google.android.gms.cast.CastMediaControlIntent;
-import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.common.api.ResultCallback;
-import com.google.android.gms.common.api.Status;
-
-import java.io.IOException;
 import java.io.Serializable;
 import java.util.LinkedList;
 import java.util.List;
 
-import au.id.neasbey.biblecast.API.BibleAPI;
-import au.id.neasbey.biblecast.API.BibleAPIConnectionHandler;
 import au.id.neasbey.biblecast.API.BibleAPIQueryType;
-import au.id.neasbey.biblecast.API.BibleAPIResponseParser;
-import au.id.neasbey.biblecast.API.BiblesOrg.BibleAPIBiblesOrg;
-import au.id.neasbey.biblecast.API.BiblesOrg.BibleAPIConnectionHandlerBiblesOrg;
-import au.id.neasbey.biblecast.API.BiblesOrg.BibleAPIResponseParserBiblesOrg;
+import au.id.neasbey.biblecast.API.BibleAPITask;
+import au.id.neasbey.biblecast.GUIHelper.SearchOnSuggestionListener;
+import au.id.neasbey.biblecast.GUIHelper.VersionOnItemSelectedListener;
+import au.id.neasbey.biblecast.cast.BibleCast;
+import au.id.neasbey.biblecast.cast.ScrollGestureListener;
 import au.id.neasbey.biblecast.model.BibleVersion;
-import au.id.neasbey.biblecast.model.Dimensions;
-import au.id.neasbey.biblecast.util.CastUtils;
 import au.id.neasbey.biblecast.util.HttpUtils;
 import au.id.neasbey.biblecast.util.UIUtils;
 
@@ -74,7 +51,9 @@ public class BibleSearch extends AppCompatActivity {
 
     private static final String DEFAULT_VERSION = "eng-NASB";
 
-    private static final String RESULTS = "results";
+    private static final String STATE_RESULTS = "results";
+
+    private BibleCast bibleCast;
 
     private boolean resultsExist;
 
@@ -98,20 +77,9 @@ public class BibleSearch extends AppCompatActivity {
 
     private ImageView scrollImageView;
 
-    protected GestureDetectorCompat mDetector;
+    private GestureDetectorCompat mDetector;
 
-    private MediaRouter mMediaRouter;
-    private MediaRouteSelector mMediaRouteSelector;
-    private MediaRouter.Callback mMediaRouterCallback;
-    private CastDevice mSelectedDevice;
-    private GoogleApiClient mApiClient;
-    private Cast.Listener mCastListener;
-    private GoogleApiClient.ConnectionCallbacks mConnectionCallbacks;
-    private GoogleApiClient.OnConnectionFailedListener mConnectionFailedListener;
-    private BiblecastChannel mBiblecastChannel;
-    private boolean mApplicationStarted;
-    private boolean mWaitingForReconnect;
-    private String mSessionId;
+    private ProgressDialog progressDialog;
 
     public BibleSearch() {
         bibleVersion = DEFAULT_VERSION;
@@ -128,29 +96,20 @@ public class BibleSearch extends AppCompatActivity {
 
         // restore previous results
         if(savedInstanceState != null) {
-            resultList = (List<Spanned>) savedInstanceState.getSerializable(RESULTS);
+            resultList = (List<Spanned>) savedInstanceState.getSerializable(STATE_RESULTS);
         }
 
         setContentView(R.layout.activity_bible_search);
         UIUtils.setContext(this);
+        bibleCast = new BibleCast(this);
+        progressDialog = new ProgressDialog(this);
 
         setupResultsView();
         setupGestureView();
         setupVersionSpinner();
-        setupCast();
 
         getBibleVersions();
         getBookSuggestions();
-    }
-
-    private void setupVersionSpinner() {
-        // may need this: http://stackoverflow.com/questions/1625249/android-how-to-bind-spinner-to-custom-object-list
-        versionAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, versionList);
-        versionAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-
-        versionSpinner = (Spinner) findViewById(R.id.versionSpinner);
-        versionSpinner.setAdapter(versionAdapter);
-        versionSpinner.setOnItemSelectedListener(new SearchOnItemSelectedListener(this));
     }
 
     /**
@@ -170,28 +129,27 @@ public class BibleSearch extends AppCompatActivity {
         gestureView = (GestureOverlayView) findViewById(R.id.gestureView);
         gestureView.setOnTouchListener(new ScrollOnTouchListener());
         gestureView.setGestureVisible(false);
-        mDetector = new GestureDetectorCompat(this, new ScrollGestureListener());
+        mDetector = new GestureDetectorCompat(this, new ScrollGestureListener(this));
 
         scrollImageView = (ImageView) findViewById(R.id.scrollImageView);
     }
 
-    /**
-     * Setup cast device discovery
-     */
-    protected void setupCast() {
-        mMediaRouter = android.support.v7.media.MediaRouter.getInstance(getApplicationContext());
-        mMediaRouteSelector = new MediaRouteSelector.Builder()
-                .addControlCategory(CastMediaControlIntent.categoryForCast(getResources()
-                        .getString(R.string.app_id))).build();
-        mMediaRouterCallback = new BiblecastMediaRouterCallback();
+    private void setupVersionSpinner() {
+        // may need this: http://stackoverflow.com/questions/1625249/android-how-to-bind-spinner-to-custom-object-list
+        versionAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, versionList);
+        versionAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+
+        versionSpinner = (Spinner) findViewById(R.id.versionSpinner);
+        versionSpinner.setAdapter(versionAdapter);
+        versionSpinner.setOnItemSelectedListener(new VersionOnItemSelectedListener(this));
     }
 
     private void getBibleVersions() {
-        new BibleAPITask().execute(BibleAPIQueryType.VERSION.name(), getText(R.string.api_versions_url).toString(), LANGUAGE_ENG_US);
+        new BibleAPITask(this).execute(BibleAPIQueryType.VERSION.name(), getText(R.string.api_versions_url).toString(), LANGUAGE_ENG_US);
     }
 
     private void getBookSuggestions() {
-        new BibleAPITask().execute(BibleAPIQueryType.BOOK.name(), getText(R.string.api_books_url).toString());
+        new BibleAPITask(this).execute(BibleAPIQueryType.BOOK.name(), getText(R.string.api_books_url).toString());
     }
 
     /**
@@ -216,7 +174,7 @@ public class BibleSearch extends AppCompatActivity {
             String query = intent.getStringExtra(SearchManager.QUERY);
 
             if(!TextUtils.isEmpty(query)) {
-                new BibleAPITask().execute(BibleAPIQueryType.SEARCH.name(), getText(R.string.api_search_url).toString(), query.toLowerCase(), bibleVersion);
+                new BibleAPITask(this).execute(BibleAPIQueryType.SEARCH.name(), getText(R.string.api_search_url).toString(), query.toLowerCase(), bibleVersion);
             }
         }
     }
@@ -225,16 +183,15 @@ public class BibleSearch extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         Log.d(TAG, "onStart");
-        // Start media router discovery
-        mMediaRouter.addCallback(mMediaRouteSelector, mMediaRouterCallback,
-                MediaRouter.CALLBACK_FLAG_REQUEST_DISCOVERY);
+
+        bibleCast.startMediaDiscovery();
     }
 
     @Override
     protected void onStop() {
         Log.d(TAG, "onStop");
-        // End media router discovery
-        mMediaRouter.removeCallback(mMediaRouterCallback);
+
+        bibleCast.endMediaDiscovery();
         super.onStop();
     }
 
@@ -243,7 +200,7 @@ public class BibleSearch extends AppCompatActivity {
         Log.d(TAG, "onDestroy");
 
         // Close cast connection
-        teardown(true);
+        bibleCast.teardown(true);
 
         super.onDestroy();
     }
@@ -252,14 +209,14 @@ public class BibleSearch extends AppCompatActivity {
     protected void onSaveInstanceState(Bundle savedInstanceState) {
         super.onSaveInstanceState(savedInstanceState);
 
-        savedInstanceState.putSerializable(RESULTS, (Serializable) resultList);
+        savedInstanceState.putSerializable(STATE_RESULTS, (Serializable) resultList);
     }
 
     @Override
     protected void onRestoreInstanceState(Bundle savedInstanceState) {
         super.onRestoreInstanceState(savedInstanceState);
 
-        resultList = (List<Spanned>)savedInstanceState.getSerializable(RESULTS);
+        resultList = (List<Spanned>)savedInstanceState.getSerializable(STATE_RESULTS);
     }
 
     @Override
@@ -277,327 +234,53 @@ public class BibleSearch extends AppCompatActivity {
         MenuItem mediaRouteMenuItem = menu.findItem(R.id.media_route_menu_item);
         MediaRouteActionProvider mediaRouteActionProvider = (MediaRouteActionProvider) MenuItemCompat.getActionProvider(mediaRouteMenuItem);
         // Set the MediaRouteActionProvider selector for device discovery.
-        mediaRouteActionProvider.setRouteSelector(mMediaRouteSelector);
+        mediaRouteActionProvider.setRouteSelector(bibleCast.getMediaRouteSelector());
 
         return true;
     }
 
-    private Activity getActivity() {
-        return this;
+    public void updateResultView() {
+        // Notify the list adapter the data has changed
+        resultsAdapter.notifyDataSetChanged();
+
+        // Hide the entry keyboard
+        SearchView searchView = (SearchView) findViewById(R.id.searchView);
+        searchView.clearFocus();
+
+        // send results to cast receiver
+        bibleCast.sendMessage(HttpUtils.listToJSON(resultList));
     }
 
-    private class ScrollOnTouchListener implements View.OnTouchListener {
+    public void updateVersionView() {
+        // Notify the list adapter the data has changed
+        versionAdapter.notifyDataSetChanged();
 
-        private final String TAG = ScrollOnTouchListener.class.getName();
+        // Set default bible version
+        int position = versionAdapter.getPosition(findBibleVersionById(versionList, DEFAULT_VERSION));
 
-        @Override
-        public boolean onTouch(View v, MotionEvent event) {
-            mDetector.onTouchEvent(event);
-
-            Log.d(TAG, "onTouchEvent: " + event.toString());
-
-            return false;
-        }
-    }
-
-    private class ScrollGestureListener extends GestureDetector.SimpleOnGestureListener {
-        private final String TAG = ScrollGestureListener.class.getName();
-
-        @Override
-        public boolean onScroll(MotionEvent e1, MotionEvent e2,
-                                float distanceX, float distanceY) {
-            Log.d(TAG, "OnScroll: " + distanceY);
-
-            int offSet = Math.round(distanceY);
-
-            if(offSet != 0) {
-                sendMessage("{ \"gesture\" : \"scroll\", \"offset\" : \"" + offSet + "\" }");
-            }
-
-            return false;
-        }
-
-        public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX,
-                               float velocityY) {
-            Log.d(TAG, "onFling: " + velocityY);
-
-            new FlingRunnable(e1, e2, velocityX, velocityY).run();
-
-            return false;
-        }
-
-        private class FlingRunnable implements Runnable {
-
-            protected MotionEvent e1;
-            protected MotionEvent e2;
-            protected float velocityX;
-            protected float velocityY;
-            protected float distanceX;
-            protected float distanceY;
-
-
-            public FlingRunnable(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY){
-                this.e1 = e1;
-                this.e2 = e2;
-                this.velocityX = velocityX;
-                this.velocityY = velocityY;
-            }
-
-            @Override
-            public void run() {
-                // TODO needs tuning
-                distanceX = velocityX * -1 / 20;
-                distanceY = velocityY * -1 / 20;
-
-                new CountDownTimer((long)Math.abs(velocityY) / 8, 10) {
-
-                    public void onTick(long millisUntilFinished) {
-                        onScroll(e1, e2, distanceX, distanceY);
-                        distanceY -= distanceY / 10;
-                    }
-
-                    public void onFinish() {
-                        onScroll(e1, e2, distanceX, distanceY);
-                    }
-                }.start();
-            }
+        if(position >= 0) {
+            versionSpinner.setSelection(position);
         }
     }
 
     /**
-     * Connects to the Bible REST JSON web service, performs a search query, updates the activity with the response JSON
+     * Finds a BibleVersion from a list by ID
+     * @param versionList List of BibleVersions
+     * @param versionId ID of the BibleVersion to find
+     * @return Found BibleVersion or null if not found
      */
-    private class BibleAPITask extends AsyncTask<String, String, String> {
+    private BibleVersion findBibleVersionById(List<BibleVersion> versionList, String versionId) {
 
-        private BibleAPI bibleAPI;
-
-        private final ProgressDialog progressDialog = new ProgressDialog(BibleSearch.this);
-
-        private BibleAPIQueryType queryType;
-
-        protected void onPreExecute() {
-            setupBibleAPI();
-
-            // Start Progress Dialog (Message)
-            progressDialog.setMessage(getText(R.string.ui_wait));
-            progressDialog.show();
-        }
-
-        /**
-         * Setup Bibles.org REST web service interface
-         */
-        protected void setupBibleAPI() {
-            // Specifies Bibles.org Bible API
-            BibleAPIConnectionHandler bibleAPIConnectionHandler = new BibleAPIConnectionHandlerBiblesOrg();
-            BibleAPIResponseParser bibleAPIResponseParser = new BibleAPIResponseParserBiblesOrg();
-
-            // Configure Bible API
-            bibleAPI = new BibleAPIBiblesOrg(bibleAPIConnectionHandler, bibleAPIResponseParser);
-            bibleAPI.setUsername(getText(R.string.api_username).toString());
-            bibleAPI.setPassword(getText(R.string.api_password).toString());
-        }
-
-        @Override
-        protected String doInBackground(String... params) {
-            return queryBibleAPI(params);
-        }
-
-        /**
-         * Queries the Bible API
-         *
-         * @param params query parameters
-         * @return Result response, if populated, an error occurred
-         */
-        private String queryBibleAPI(String... params) {
-
-            queryType = BibleAPIQueryType.valueOf(params[0]);
-            bibleAPI.setQueryType(queryType);
-
-            switch(queryType) {
-                case SEARCH:
-                    setQueryParameters(params[1], params[2], params[3]);
-                    break;
-                case VERSION:
-                    bibleAPI.setURL(params[1]);
-                    bibleAPI.setLanguage(params[2]);
-                    break;
-                case BOOK:
-                    bibleAPI.setURL(params[1]);
-                    break;
-                default:
-                    setQueryParameters(params[1], params[2], params[3]);
-            }
-
-            return bibleAPI.query();
-        }
-
-        private void setQueryParameters(String url, String query, String version) {
-            bibleAPI.setURL(url);
-            bibleAPI.setQuery(query);
-            bibleAPI.setVersions(version);
-        }
-
-        protected void onPostExecute(String result) {
-
-            // Close progress dialog
-            progressDialog.dismiss();
-
-            if (isResultSuccessful(result)) {
-                switch(queryType) {
-                    case SEARCH:
-                        handleSearchResults();
-                        break;
-                    case VERSION:
-                        handleVersionResults();
-                        break;
-                    case BOOK:
-                        handleBookResults();
-                        break;
-                    default:
-                        handleSearchResults();
-                }
+        for(BibleVersion bibleVersion : versionList) {
+            if(bibleVersion.getId().equalsIgnoreCase(versionId)) {
+                return bibleVersion;
             }
         }
 
-        /**
-         * Checks result response test and results to see if the query was successful
-         * @param result Response test
-         * @return {@code Boolean.TRUE} if results exist, otherwise {@code Boolean.FALSE}
-         */
-        private boolean isResultSuccessful(String result) {
-
-            if (!TextUtils.isEmpty(result)) {
-                // If result test is populated, an error occurred, then display the error
-                Log.e(TAG, "Request Failed: " + result);
-
-                UIUtils.displayError(getActivity(), R.string.api_failed, getText(R.string.ok).toString(), result);
-            } else if (TextUtils.isEmpty(result) && bibleAPI.hasResults()) {
-                // If result test is empty and there are results, update the results list displayed
-                Log.d(TAG, "Request Successful");
-
-                return true;
-            } else {
-                // If result test is empty and there are no results, then display the error
-                Log.e(TAG, "No results");
-
-                UIUtils.displayError(getActivity(),
-                        R.string.api_request_complete,
-                        getText(R.string.ok).toString(),
-                        getText(R.string.api_no_results).toString());
-            }
-
-            return false;
-        }
-
-        private void handleSearchResults() {
-
-            resultsExist = true;
-            bibleAPI.updateResultList(resultList);
-
-            // Notify the list adapter the data has changed
-            resultsAdapter.notifyDataSetChanged();
-
-            // Hide the entry keyboard
-            SearchView searchView = (SearchView) findViewById(R.id.searchView);
-            searchView.clearFocus();
-
-            // send results to cast receiver
-            sendMessage(HttpUtils.listToJSON(resultList));
-        }
-
-        private void handleVersionResults() {
-
-            bibleAPI.updateResultList(versionList);
-
-            // Notify the list adapter the data has changed
-            versionAdapter.notifyDataSetChanged();
-
-            // Set default bible version
-            int position = versionAdapter.getPosition(findBibleVersionById(versionList, DEFAULT_VERSION));
-
-            if(position >= 0) {
-                versionSpinner.setSelection(position);
-            }
-        }
-
-        /**
-         * Finds a BibleVersion from a list by ID
-         * @param versionList List of BibleVersions
-         * @param versionId ID of the BibleVersion to find
-         * @return Found BibleVersion or null if not found
-         */
-        private BibleVersion findBibleVersionById(List<BibleVersion> versionList, String versionId) {
-
-            for(BibleVersion bibleVersion : versionList) {
-                if(bibleVersion.getId().equalsIgnoreCase(versionId)) {
-                    return bibleVersion;
-                }
-            }
-
-            return null;
-        }
-
-        private void handleBookResults() {
-
-            bibleAPI.updateResultList(bookList);
-
-            // update search suggestions
-            SuggestionAsyncQueryHandler suggestionAsyncQueryHandler = new SuggestionAsyncQueryHandler(getContentResolver());
-            suggestionAsyncQueryHandler.startQuery(0, bookList, SearchSuggestionProvider.CONTENT_URI, null, null, null, null);
-        }
-
-        @Override
-        protected void onCancelled() {
-            closeDialog();
-        }
-
-        /**
-         * Close progress dialog
-         */
-        private void closeDialog() {
-            if(progressDialog != null && progressDialog.isShowing()) {
-                progressDialog.dismiss();
-            }
-        }
+        return null;
     }
 
-    /**
-     * Tear down the connection to the receiver
-     */
-    private void teardown(boolean selectDefaultRoute) {
-        Log.d(TAG, "teardown");
-        if (mApiClient != null) {
-            if (mApplicationStarted) {
-                if (mApiClient.isConnected() || mApiClient.isConnecting()) {
-                    try {
-                        Cast.CastApi.stopApplication(mApiClient, mSessionId);
-                        if (mBiblecastChannel != null) {
-                            Cast.CastApi.removeMessageReceivedCallbacks(
-                                    mApiClient,
-                                    mBiblecastChannel.getNamespace());
-                            mBiblecastChannel = null;
-                        }
-                    } catch (IOException e) {
-                        // TODO handle exception
-                        Log.e(TAG, "Exception while removing channel", e);
-                    }
-                    mApiClient.disconnect();
-                }
-                mApplicationStarted = false;
-            }
-            mApiClient = null;
-        }
-        if (selectDefaultRoute) {
-            mMediaRouter.selectRoute(mMediaRouter.getDefaultRoute());
-        }
-        mSelectedDevice = null;
-        mWaitingForReconnect = false;
-        mSessionId = null;
-
-        showResults();
-    }
-
-    private void showResults() {
+    public void showResults() {
         if(resultView != null) {
             resultView.setVisibility(View.VISIBLE);
             Log.d(TAG, "Shown results");
@@ -606,7 +289,7 @@ public class BibleSearch extends AppCompatActivity {
         }
     }
 
-    private void hideResults() {
+    public void hideResults() {
         if(resultView != null) {
             resultView.setVisibility(View.INVISIBLE);
             Log.d(TAG, "Hidden results");
@@ -643,236 +326,25 @@ public class BibleSearch extends AppCompatActivity {
         }
     }
 
-    private boolean isCastConnected() {
-        return mApiClient != null && mBiblecastChannel != null;
+    /**
+     * Create and show progress dialog (message)
+     */
+    public void showProgress() {
+        progressDialog.setMessage(getText(R.string.ui_wait));
+        progressDialog.show();
     }
 
     /**
-     * Send a text message to the receiver
+     * Close progress dialog
      */
-    private void sendMessage(String message) {
-        if (mApiClient != null && mBiblecastChannel != null) {
-            Log.d(TAG, "Sending message: " + message);
-
-            try {
-                Cast.CastApi.sendMessage(mApiClient,
-                        mBiblecastChannel.getNamespace(), message).setResultCallback(
-                        new ResultCallback<Status>() {
-                            @Override
-                            public void onResult(Status result) {
-                                if (!result.isSuccess()) {
-                                    Log.e(TAG, "Sending message failed");
-                                }
-                            }
-                        });
-            } catch (Exception e) {
-                // TODO handle exception
-                Log.e(TAG, "Exception while sending message", e);
-            }
-        } else {
-            //Toast.makeText(BibleSearch.this, message, Toast.LENGTH_SHORT).show();
-            Log.d(TAG, "Disconnected message: " + message);
+    public void closeDialog() {
+        if(progressDialog != null) {
+            progressDialog.dismiss();
         }
     }
 
-    private void parseMessage(String message) {
-
-        if(!TextUtils.isEmpty(message)) {
-            try {
-                // Is currently not used. Demonstrates multi-direction JSON communication with google cast
-                Dimensions dimensions = CastUtils.parseMessageForDimensions(message);
-            } catch (BiblecastException e) {
-                Log.d(TAG, e.getMessage());
-            }
-        }
-    }
-
-    /**
-     * Callback for MediaRouter events
-     */
-    private class BiblecastMediaRouterCallback extends MediaRouter.Callback {
-
-        @Override
-        public void onRouteSelected(MediaRouter router, MediaRouter.RouteInfo info) {
-            Log.d(TAG, "onRouteSelected");
-            // Handle the user route selection.
-            mSelectedDevice = CastDevice.getFromBundle(info.getExtras());
-
-            launchReceiver();
-        }
-
-        @Override
-        public void onRouteUnselected(MediaRouter router, MediaRouter.RouteInfo info) {
-            Log.d(TAG, "onRouteUnselected: info=" + info);
-            teardown(false);
-            mSelectedDevice = null;
-        }
-    }
-
-    /**
-     * Start the receiver app
-     */
-    private void launchReceiver() {
-        try {
-            mCastListener = new Cast.Listener() {
-
-                @Override
-                public void onApplicationDisconnected(int errorCode) {
-                    Log.d(TAG, "application has stopped");
-                    teardown(true);
-                }
-
-            };
-            // Connect to Google Play services
-            mConnectionCallbacks = new ConnectionCallbacks();
-            mConnectionFailedListener = new ConnectionFailedListener();
-            Cast.CastOptions.Builder apiOptionsBuilder = Cast.CastOptions.builder(mSelectedDevice, mCastListener);
-            mApiClient = new GoogleApiClient.Builder(this)
-                    .addApi(Cast.API, apiOptionsBuilder.build())
-                    .addConnectionCallbacks(mConnectionCallbacks)
-                    .addOnConnectionFailedListener(mConnectionFailedListener)
-                    .build();
-
-            mApiClient.connect();
-        } catch (Exception e) {
-            // TODO handle exception
-            Log.e(TAG, "Failed launchReceiver", e);
-        }
-    }
-
-    /**
-     * Google Play services callbacks
-     */
-    private class ConnectionCallbacks implements
-            GoogleApiClient.ConnectionCallbacks {
-
-        @Override
-        public void onConnected(Bundle connectionHint) {
-            Log.d(TAG, "onConnected");
-
-            if (mApiClient == null) {
-                // We got disconnected while this runnable was pending execution.
-                return;
-            }
-
-            try {
-                if (mWaitingForReconnect) {
-                    mWaitingForReconnect = false;
-
-                    // Check if the receiver app is still running
-                    if ((connectionHint != null)
-                            && connectionHint.getBoolean(Cast.EXTRA_APP_NO_LONGER_RUNNING)) {
-                        Log.d(TAG, "Application is no longer running");
-                        teardown(true);
-                    } else {
-                        // Re-create the custom message channel
-                        try {
-                            Cast.CastApi.setMessageReceivedCallbacks(
-                                    mApiClient,
-                                    mBiblecastChannel.getNamespace(),
-                                    mBiblecastChannel);
-
-                            hideResults();
-                        } catch (IOException e) {
-                            // TODO handle exception
-                            Log.e(TAG, "Exception while creating channel", e);
-                        }
-                    }
-                } else {
-                    // Launch the receiver app
-                    Cast.CastApi.launchApplication(mApiClient, getString(R.string.app_id), false).setResultCallback(
-                            new ResultCallback<Cast.ApplicationConnectionResult>() {
-                                @Override
-                                public void onResult(Cast.ApplicationConnectionResult result) {
-
-                                    Status status = result.getStatus();
-                                    Log.d(TAG, "ApplicationConnectionResultCallback.onResult:" + status.getStatusCode());
-
-                                    if (status.isSuccess()) {
-                                        ApplicationMetadata applicationMetadata = result.getApplicationMetadata();
-                                        mSessionId = result.getSessionId();
-                                        String applicationStatus = result.getApplicationStatus();
-                                        boolean wasLaunched = result.getWasLaunched();
-
-                                        Log.d(TAG, "Application name: " + applicationMetadata.getName() + ", status: " + applicationStatus + ", sessionId: " + mSessionId + ", wasLaunched: " + wasLaunched);
-                                        mApplicationStarted = true;
-
-                                        // Create the custom message channel
-                                        mBiblecastChannel = new BiblecastChannel();
-                                        try {
-                                            Cast.CastApi.setMessageReceivedCallbacks(mApiClient, mBiblecastChannel.getNamespace(), mBiblecastChannel);
-
-                                            hideResults();
-                                        } catch (IOException e) {
-                                            // TODO handle exception
-                                            Log.e(TAG, "Exception while creating channel", e);
-                                        }
-
-                                        // set the initial instructions on the receiver if no results exist
-                                        if (resultsExist) {
-                                            sendMessage(HttpUtils.listToJSON(resultList));
-                                        } else {
-                                            sendMessage(getString(R.string.cast_instructions));
-                                        }
-                                    } else {
-                                        Log.e(TAG, "Application could not launch");
-                                        teardown(true);
-                                    }
-                                }
-                            });
-                }
-            } catch (Exception e) {
-                // TODO handle exception
-                Log.e(TAG, "Failed to launch application", e);
-            }
-        }
-
-        @Override
-        public void onConnectionSuspended(int cause) {
-            Log.d(TAG, "onConnectionSuspended");
-            mWaitingForReconnect = true;
-        }
-    }
-
-    /**
-     * Google Play services callbacks
-     */
-    private class ConnectionFailedListener implements
-            GoogleApiClient.OnConnectionFailedListener {
-
-        @Override
-        public void onConnectionFailed(ConnectionResult result) {
-            Log.e(TAG, "onConnectionFailed ");
-
-            teardown(false);
-        }
-    }
-
-    /**
-     * Custom message channel
-     */
-    class BiblecastChannel implements Cast.MessageReceivedCallback {
-
-        /**
-         * @return custom namespace
-         */
-        public String getNamespace() {
-            return getString(R.string.namespace);
-        }
-
-        /*
-         * Receive message from the receiver app
-         */
-        @Override
-        public void onMessageReceived(CastDevice castDevice, String namespace,
-                                      String message) {
-            Log.d(TAG, "onMessageReceived: " + message);
-
-            if(castDevice.equals(mSelectedDevice) && namespace.equals(getNamespace())) {
-                parseMessage(message);
-            }
-        }
-
+    public void sendCastMessage(String message) {
+        bibleCast.sendMessage(message);
     }
 
     public String getBibleVersion() {
@@ -889,5 +361,47 @@ public class BibleSearch extends AppCompatActivity {
 
     public void setVersions(List<BibleVersion> versionList) {
         this.versionList = versionList;
+    }
+
+    public boolean isResultsExist() {
+        return resultsExist;
+    }
+
+    public void setResultsExist(boolean resultsExist) {
+        this.resultsExist = resultsExist;
+    }
+
+    public List<Spanned> getResults() {
+        return resultList;
+    }
+
+    public void setResults(List<Spanned> resultList) {
+        this.resultList = resultList;
+    }
+
+    public List<String> getBooks() {
+        return bookList;
+    }
+
+    public void setBooks(List<String> bookList) {
+        this.bookList = bookList;
+    }
+
+    public Activity getActivity() {
+        return this;
+    }
+
+    private class ScrollOnTouchListener implements View.OnTouchListener {
+
+        private final String TAG = ScrollOnTouchListener.class.getName();
+
+        @Override
+        public boolean onTouch(View v, MotionEvent event) {
+            mDetector.onTouchEvent(event);
+
+            Log.d(TAG, "onTouchEvent: " + event.toString());
+
+            return false;
+        }
     }
 }

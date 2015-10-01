@@ -1,4 +1,4 @@
-package au.id.neasbey.biblecast;
+package au.id.neasbey.biblecast.GUIHelper;
 
 import android.app.SearchManager;
 import android.content.ContentProvider;
@@ -183,13 +183,13 @@ public class SearchSuggestionProvider extends ContentProvider {
         switch (uriMatcher.match(uri)) {
             // Get all suggestions
             case SUGGESTIONS:
-                return "vnd.android.cursor.dir/vnd.au.id.neasbey.biblecast.SearchSuggestionProvider.suggestions";
+                return "vnd.android.cursor.dir/vnd.au.id.neasbey.biblecast.GUIHelper.SearchSuggestionProvider.suggestions";
             // Get a suggestion
             case SUGGESTIONS_ID:
-                return "vnd.android.cursor.item/vnd.au.id.neasbey.biblecast.SearchSuggestionProvider.suggestions";
+                return "vnd.android.cursor.item/vnd.au.id.neasbey.biblecast.GUIHelper.SearchSuggestionProvider.suggestions";
             // Get suggestions that match the query
             case SUGGESTIONS_SEARCH:
-                return "vnd.android.cursor.item/vnd.au.id.neasbey.biblecast.SearchSuggestionProvider.suggestions";
+                return "vnd.android.cursor.item/vnd.au.id.neasbey.biblecast.GUIHelper.SearchSuggestionProvider.suggestions";
             default:
                 throw new IllegalArgumentException("Unsupported URI: " + uri);
         }

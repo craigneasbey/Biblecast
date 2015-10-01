@@ -12,7 +12,7 @@ import java.util.List;
 
 import au.id.neasbey.biblecast.API.BibleAPIResponse;
 import au.id.neasbey.biblecast.API.BibleAPIResponseParser;
-import au.id.neasbey.biblecast.BiblecastException;
+import au.id.neasbey.biblecast.exception.BiblecastException;
 import au.id.neasbey.biblecast.model.BibleVersion;
 import au.id.neasbey.biblecast.R;
 import au.id.neasbey.biblecast.util.SequenceNumber;
