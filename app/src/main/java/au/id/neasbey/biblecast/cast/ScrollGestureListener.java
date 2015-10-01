@@ -9,6 +9,8 @@ import au.id.neasbey.biblecast.BibleSearch;
 
 /**
  * Created by craigneasbey on 1/10/15.
+ *
+ * Listener for scroll motions on the gesture view during google casting and sends the offset to the cast device
  */
 public class ScrollGestureListener extends GestureDetector.SimpleOnGestureListener {
     private final String TAG = ScrollGestureListener.class.getName();
@@ -26,7 +28,8 @@ public class ScrollGestureListener extends GestureDetector.SimpleOnGestureListen
 
         int offSet = Math.round(distanceY);
 
-        if(offSet != 0) {
+        // if there is a change more than a pixel, send the scroll off set to cast
+        if (offSet != 0) {
             bibleSearch.sendCastMessage("{ \"gesture\" : \"scroll\", \"offset\" : \"" + offSet + "\" }");
         }
 
@@ -42,6 +45,9 @@ public class ScrollGestureListener extends GestureDetector.SimpleOnGestureListen
         return false;
     }
 
+    /**
+     * Converts fling motion to decreasing scroll motions
+     */
     private class FlingRunnable implements Runnable {
 
         protected MotionEvent e1;
@@ -52,7 +58,7 @@ public class ScrollGestureListener extends GestureDetector.SimpleOnGestureListen
         protected float distanceY;
 
 
-        public FlingRunnable(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY){
+        public FlingRunnable(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
             this.e1 = e1;
             this.e2 = e2;
             this.velocityX = velocityX;
@@ -65,7 +71,7 @@ public class ScrollGestureListener extends GestureDetector.SimpleOnGestureListen
             distanceX = velocityX * -1 / 20;
             distanceY = velocityY * -1 / 20;
 
-            new CountDownTimer((long)Math.abs(velocityY) / 8, 10) {
+            new CountDownTimer((long) Math.abs(velocityY) / 8, 10) {
 
                 public void onTick(long millisUntilFinished) {
                     onScroll(e1, e2, distanceX, distanceY);

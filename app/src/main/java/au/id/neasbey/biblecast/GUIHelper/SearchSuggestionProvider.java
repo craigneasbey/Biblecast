@@ -21,6 +21,8 @@ import java.util.HashMap;
 /**
  * Created by craigneasbey on 16/09/15.
  * Derived from http://examples.javacodegeeks.com/android/core/content/contentprovider/android-content-provider-example/
+ *
+ * Stories bible book suggestions for the search query
  */
 public class SearchSuggestionProvider extends ContentProvider {
 

@@ -26,7 +26,7 @@ import au.id.neasbey.biblecast.util.HttpUtils;
 
 /**
  * Created by craigneasbey on 1/10/15.
- *
+ * <p/>
  * Sets up Google cast media router for device discovery, connection and communication
  */
 public class BibleCast {
@@ -76,42 +76,6 @@ public class BibleCast {
         mMediaRouter.removeCallback(mMediaRouterCallback);
     }
 
-    /**
-     * Tear down the connection to the receiver
-     */
-    public void teardown(boolean selectDefaultRoute) {
-        Log.d(TAG, "teardown");
-        if (mApiClient != null) {
-            if (mApplicationStarted) {
-                if (mApiClient.isConnected() || mApiClient.isConnecting()) {
-                    try {
-                        Cast.CastApi.stopApplication(mApiClient, mSessionId);
-                        if (mBiblecastChannel != null) {
-                            Cast.CastApi.removeMessageReceivedCallbacks(
-                                    mApiClient,
-                                    mBiblecastChannel.getNamespace());
-                            mBiblecastChannel = null;
-                        }
-                    } catch (IOException e) {
-                        // TODO handle exception
-                        Log.e(TAG, "Exception while removing channel", e);
-                    }
-                    mApiClient.disconnect();
-                }
-                mApplicationStarted = false;
-            }
-            mApiClient = null;
-        }
-        if (selectDefaultRoute) {
-            mMediaRouter.selectRoute(mMediaRouter.getDefaultRoute());
-        }
-        mSelectedDevice = null;
-        mWaitingForReconnect = false;
-        mSessionId = null;
-
-        bibleSearch.showResults();
-    }
-
     public boolean isCastConnected() {
         return mApiClient != null && mBiblecastChannel != null;
     }
@@ -138,15 +102,16 @@ public class BibleCast {
                 // TODO handle exception
                 Log.e(TAG, "Exception while sending message", e);
             }
-        } else {
-            //Toast.makeText(BibleSearch.this, message, Toast.LENGTH_SHORT).show();
-            Log.d(TAG, "Disconnected message: " + message);
         }
     }
 
+    /**
+     * Parses messages from the google cast
+     * @param message The string message pasted back from the google cast
+     */
     private void parseMessage(String message) {
 
-        if(!TextUtils.isEmpty(message)) {
+        if (!TextUtils.isEmpty(message)) {
             try {
                 // Is currently not used. Demonstrates multi-direction JSON communication with google cast
                 Dimensions dimensions = CastUtils.parseMessageForDimensions(message);
@@ -156,30 +121,47 @@ public class BibleCast {
         }
     }
 
-    public MediaRouteSelector getMediaRouteSelector() {
-        return mMediaRouteSelector;
+    /**
+     * Tear down the connection to the receiver
+     */
+    public void teardown(boolean selectDefaultRoute) {
+        Log.d(TAG, "teardown");
+
+        if (mApiClient != null) {
+            if (mApplicationStarted) {
+                if (mApiClient.isConnected() || mApiClient.isConnecting()) {
+                    try {
+                        Cast.CastApi.stopApplication(mApiClient, mSessionId);
+                        if (mBiblecastChannel != null) {
+                            Cast.CastApi.removeMessageReceivedCallbacks(
+                                    mApiClient,
+                                    mBiblecastChannel.getNamespace());
+                            mBiblecastChannel = null;
+                        }
+                    } catch (IOException e) {
+                        // TODO handle exception
+                        Log.e(TAG, "Exception while removing channel", e);
+                    }
+                    mApiClient.disconnect();
+                }
+                mApplicationStarted = false;
+            }
+            mApiClient = null;
+        }
+
+        if (selectDefaultRoute) {
+            mMediaRouter.selectRoute(mMediaRouter.getDefaultRoute());
+        }
+
+        mSelectedDevice = null;
+        mWaitingForReconnect = false;
+        mSessionId = null;
+
+        bibleSearch.showResults();
     }
 
-    /**
-     * Callback for MediaRouter events
-     */
-    private class BiblecastMediaRouterCallback extends MediaRouter.Callback {
-
-        @Override
-        public void onRouteSelected(MediaRouter router, MediaRouter.RouteInfo info) {
-            Log.d(TAG, "onRouteSelected");
-            // Handle the user route selection.
-            mSelectedDevice = CastDevice.getFromBundle(info.getExtras());
-
-            launchReceiver();
-        }
-
-        @Override
-        public void onRouteUnselected(MediaRouter router, MediaRouter.RouteInfo info) {
-            Log.d(TAG, "onRouteUnselected: info=" + info);
-            teardown(false);
-            mSelectedDevice = null;
-        }
+    public MediaRouteSelector getMediaRouteSelector() {
+        return mMediaRouteSelector;
     }
 
     /**
@@ -201,6 +183,7 @@ public class BibleCast {
                 }
 
             };
+
             // Connect to Google Play services
             mConnectionCallbacks = new ConnectionCallbacks();
             mConnectionFailedListener = new ConnectionFailedListener();
@@ -215,6 +198,29 @@ public class BibleCast {
         } catch (Exception e) {
             // TODO handle exception
             Log.e(TAG, "Failed launchReceiver", e);
+        }
+    }
+
+    /**
+     * Callback for MediaRouter events
+     */
+    private class BiblecastMediaRouterCallback extends MediaRouter.Callback {
+
+        @Override
+        public void onRouteSelected(MediaRouter router, MediaRouter.RouteInfo info) {
+            Log.d(TAG, "onRouteSelected");
+
+            // Handle the user route selection.
+            mSelectedDevice = CastDevice.getFromBundle(info.getExtras());
+
+            launchReceiver();
+        }
+
+        @Override
+        public void onRouteUnselected(MediaRouter router, MediaRouter.RouteInfo info) {
+            Log.d(TAG, "onRouteUnselected: info=" + info);
+            teardown(false);
+            mSelectedDevice = null;
         }
     }
 
@@ -237,8 +243,7 @@ public class BibleCast {
                     mWaitingForReconnect = false;
 
                     // Check if the receiver app is still running
-                    if ((connectionHint != null)
-                            && connectionHint.getBoolean(Cast.EXTRA_APP_NO_LONGER_RUNNING)) {
+                    if ((connectionHint != null) && connectionHint.getBoolean(Cast.EXTRA_APP_NO_LONGER_RUNNING)) {
                         Log.d(TAG, "Application is no longer running");
                         teardown(true);
                     } else {
@@ -276,6 +281,7 @@ public class BibleCast {
 
                                         // Create the custom message channel
                                         mBiblecastChannel = new BiblecastChannel();
+
                                         try {
                                             Cast.CastApi.setMessageReceivedCallbacks(mApiClient, mBiblecastChannel.getNamespace(), mBiblecastChannel);
 
@@ -344,7 +350,7 @@ public class BibleCast {
                                       String message) {
             Log.d(TAG, "onMessageReceived: " + message);
 
-            if(castDevice.equals(mSelectedDevice) && namespace.equals(getNamespace())) {
+            if (castDevice.equals(mSelectedDevice) && namespace.equals(getNamespace())) {
                 parseMessage(message);
             }
         }

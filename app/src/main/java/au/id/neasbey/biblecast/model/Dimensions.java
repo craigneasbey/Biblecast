@@ -2,6 +2,8 @@ package au.id.neasbey.biblecast.model;
 
 /**
  * Created by craigneasbey on 21/09/15.
+ * <p/>
+ * Holds screen dimensions
  */
 
 public class Dimensions {

@@ -12,7 +12,7 @@ import au.id.neasbey.biblecast.exception.BiblecastException;
 
 /**
  * Created by craigneasbey on 11/08/15.
- *
+ * <p/>
  * Helpful String utilities
  */
 public class HttpUtils {
@@ -67,6 +67,7 @@ public class HttpUtils {
 
     /**
      * Adds anchors to a sentence for scrolling
+     *
      * @param sentence
      * @param sq
      * @return
@@ -79,7 +80,7 @@ public class HttpUtils {
         String[] words = sentence.split(SPACE);
 
         int i = 0;
-        while(i < words.length) {
+        while (i < words.length) {
             startTag = true;
 
             for (int j = 0; j < MAX_WORD_GROUP && i < words.length; j++) {
@@ -107,6 +108,7 @@ public class HttpUtils {
 
     /**
      * Converts spanned list to JSON
+     *
      * @param elementsList HTML list
      * @return JSON string
      */
@@ -119,8 +121,8 @@ public class HttpUtils {
 
             sb.append("{ \"elements\" : [ \"");
 
-            for(Spanned element : elementsList) {
-                if(first) {
+            for (Spanned element : elementsList) {
+                if (first) {
                     first = false;
                 } else {
                     sb.append("\", \"");
@@ -136,6 +138,6 @@ public class HttpUtils {
     }
 
     public static String spannedToJSON(Spanned element) {
-        return Html.toHtml(element).trim().replace("\"","\\\"");
+        return Html.toHtml(element).trim().replace("\"", "\\\"");
     }
 }

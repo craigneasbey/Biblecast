@@ -11,6 +11,8 @@ import java.util.List;
 
 /**
  * Created by craigneasbey on 1/10/15.
+ *
+ * Handles the suggestions provider in an async thread.
  */
 public class SuggestionAsyncQueryHandler extends AsyncQueryHandler {
 
@@ -21,17 +23,22 @@ public class SuggestionAsyncQueryHandler extends AsyncQueryHandler {
     }
 
     @Override
-    protected void onQueryComplete (int token, Object cookie, Cursor cursor) {
+    protected void onQueryComplete(int token, Object cookie, Cursor cursor) {
         List<String> currentSuggestions = new LinkedList<>();
 
         // add current suggestions to memory
-        while(cursor != null && cursor.moveToNext()) {
+        while (cursor != null && cursor.moveToNext()) {
             currentSuggestions.add(cursor.getString(cursor.getColumnIndex(SearchSuggestionProvider.SUGGESTION)));
         }
 
         updateSuggestions(currentSuggestions, ((List<String>) cookie));
     }
 
+    /**
+     * Compares the current suggestions with the new suggestions and synchronises them.
+     * @param currentSuggestions List of current suggestions
+     * @param newSuggestions List of new suggestions
+     */
     private void updateSuggestions(List<String> currentSuggestions, List<String> newSuggestions) {
 
         // check all current suggestions for missing new suggestions, if found add

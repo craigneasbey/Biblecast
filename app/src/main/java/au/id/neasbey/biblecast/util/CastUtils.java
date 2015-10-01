@@ -10,7 +10,7 @@ import au.id.neasbey.biblecast.model.Dimensions;
 
 /**
  * Created by craigneasbey on 21/09/15.
- *
+ * <p/>
  * Google Cast utilities
  */
 public class CastUtils {
@@ -26,7 +26,7 @@ public class CastUtils {
         int width = 0;
         int height = 0;
 
-        if(!TextUtils.isEmpty(jsonMessage)) {
+        if (!TextUtils.isEmpty(jsonMessage)) {
 
             // Creates a new JSONObject with name/value mappings from the JSON string
             try {

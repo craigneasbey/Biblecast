@@ -5,6 +5,8 @@ import android.widget.SearchView;
 
 /**
  * Created by craigneasbey on 1/10/15.
+ *
+ * Updates the search query when a suggestion is clicked
  */
 public class SearchOnSuggestionListener implements SearchView.OnSuggestionListener {
 
@@ -27,8 +29,8 @@ public class SearchOnSuggestionListener implements SearchView.OnSuggestionListen
     public boolean updateSearchQuery(int position) {
         // http://ramannanda.blogspot.com.au/2014/10/android-searchview-integration-with.html
         Cursor cursor = (Cursor) searchView.getSuggestionsAdapter().getItem(position);
-        String feedName = cursor.getString(cursor.getColumnIndex(SearchSuggestionProvider.SUGGESTION));
-        searchView.setQuery(feedName, false);
+        String suggestion = cursor.getString(cursor.getColumnIndex(SearchSuggestionProvider.SUGGESTION));
+        searchView.setQuery(suggestion, false);
 
         return true;
     }

@@ -40,8 +40,9 @@ import au.id.neasbey.biblecast.util.UIUtils;
 
 /**
  * Created by craigneasbey on 30/06/15.
- *
- * Activity that allows the user to enter bible search term and return results from a web service
+ * <p/>
+ * Activity that allows the user to enter bible search term, view the returned results from a web service
+ * and display them on Google cast device.
  */
 public class BibleSearch extends AppCompatActivity {
 
@@ -50,6 +51,10 @@ public class BibleSearch extends AppCompatActivity {
     private static final String LANGUAGE_ENG_US = "eng-US";
 
     private static final String DEFAULT_VERSION = "eng-NASB";
+
+    private static final String STATE_BOOKS = "books";
+
+    private static final String STATE_VERSIONS = "versions";
 
     private static final String STATE_RESULTS = "results";
 
@@ -95,7 +100,9 @@ public class BibleSearch extends AppCompatActivity {
         Log.d(TAG, "onCreate");
 
         // restore previous results
-        if(savedInstanceState != null) {
+        if (savedInstanceState != null) {
+            bookList = (List<String>) savedInstanceState.getSerializable(STATE_BOOKS);
+            versionList = (List<BibleVersion>) savedInstanceState.getSerializable(STATE_VERSIONS);
             resultList = (List<Spanned>) savedInstanceState.getSerializable(STATE_RESULTS);
         }
 
@@ -144,10 +151,16 @@ public class BibleSearch extends AppCompatActivity {
         versionSpinner.setOnItemSelectedListener(new VersionOnItemSelectedListener(this));
     }
 
+    /**
+     * Get the bible versions from the Bible API for the version spinner
+     */
     private void getBibleVersions() {
         new BibleAPITask(this).execute(BibleAPIQueryType.VERSION.name(), getText(R.string.api_versions_url).toString(), LANGUAGE_ENG_US);
     }
 
+    /**
+     * Get the bible books from the Bible API to add to the search query sugguestions
+     */
     private void getBookSuggestions() {
         new BibleAPITask(this).execute(BibleAPIQueryType.BOOK.name(), getText(R.string.api_books_url).toString());
     }
@@ -173,7 +186,8 @@ public class BibleSearch extends AppCompatActivity {
             // Handle search
             String query = intent.getStringExtra(SearchManager.QUERY);
 
-            if(!TextUtils.isEmpty(query)) {
+            // only search if there is a query term
+            if (!TextUtils.isEmpty(query)) {
                 new BibleAPITask(this).execute(BibleAPIQueryType.SEARCH.name(), getText(R.string.api_search_url).toString(), query.toLowerCase(), bibleVersion);
             }
         }
@@ -209,6 +223,8 @@ public class BibleSearch extends AppCompatActivity {
     protected void onSaveInstanceState(Bundle savedInstanceState) {
         super.onSaveInstanceState(savedInstanceState);
 
+        savedInstanceState.putSerializable(STATE_BOOKS, (Serializable) bookList);
+        savedInstanceState.putSerializable(STATE_VERSIONS, (Serializable) versionList);
         savedInstanceState.putSerializable(STATE_RESULTS, (Serializable) resultList);
     }
 
@@ -216,7 +232,9 @@ public class BibleSearch extends AppCompatActivity {
     protected void onRestoreInstanceState(Bundle savedInstanceState) {
         super.onRestoreInstanceState(savedInstanceState);
 
-        resultList = (List<Spanned>)savedInstanceState.getSerializable(STATE_RESULTS);
+        bookList = (List<String>) savedInstanceState.getSerializable(STATE_BOOKS);
+        versionList = (List<BibleVersion>) savedInstanceState.getSerializable(STATE_VERSIONS);
+        resultList = (List<Spanned>) savedInstanceState.getSerializable(STATE_RESULTS);
     }
 
     @Override
@@ -227,7 +245,6 @@ public class BibleSearch extends AppCompatActivity {
         // Get the SearchView and set the searchable configuration
         SearchManager searchManager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
         SearchView searchView = (SearchView) findViewById(R.id.searchView);
-        // Assumes current activity is the searchable activity
         searchView.setSearchableInfo(searchManager.getSearchableInfo(getComponentName()));
         searchView.setOnSuggestionListener(new SearchOnSuggestionListener(searchView));
 
@@ -243,12 +260,12 @@ public class BibleSearch extends AppCompatActivity {
         // Notify the list adapter the data has changed
         resultsAdapter.notifyDataSetChanged();
 
-        // Hide the entry keyboard
-        SearchView searchView = (SearchView) findViewById(R.id.searchView);
-        searchView.clearFocus();
+        hideKeyboard();
 
         // send results to cast receiver
-        bibleCast.sendMessage(HttpUtils.listToJSON(resultList));
+        if(bibleCast.isCastConnected()) {
+            bibleCast.sendMessage(HttpUtils.listToJSON(resultList));
+        }
     }
 
     public void updateVersionView() {
@@ -256,32 +273,15 @@ public class BibleSearch extends AppCompatActivity {
         versionAdapter.notifyDataSetChanged();
 
         // Set default bible version
-        int position = versionAdapter.getPosition(findBibleVersionById(versionList, DEFAULT_VERSION));
+        int position = versionAdapter.getPosition(UIUtils.findBibleVersionById(versionList, DEFAULT_VERSION));
 
-        if(position >= 0) {
+        if (position >= 0) {
             versionSpinner.setSelection(position);
         }
     }
 
-    /**
-     * Finds a BibleVersion from a list by ID
-     * @param versionList List of BibleVersions
-     * @param versionId ID of the BibleVersion to find
-     * @return Found BibleVersion or null if not found
-     */
-    private BibleVersion findBibleVersionById(List<BibleVersion> versionList, String versionId) {
-
-        for(BibleVersion bibleVersion : versionList) {
-            if(bibleVersion.getId().equalsIgnoreCase(versionId)) {
-                return bibleVersion;
-            }
-        }
-
-        return null;
-    }
-
     public void showResults() {
-        if(resultView != null) {
+        if (resultView != null) {
             resultView.setVisibility(View.VISIBLE);
             Log.d(TAG, "Shown results");
 
@@ -290,7 +290,7 @@ public class BibleSearch extends AppCompatActivity {
     }
 
     public void hideResults() {
-        if(resultView != null) {
+        if (resultView != null) {
             resultView.setVisibility(View.INVISIBLE);
             Log.d(TAG, "Hidden results");
 
@@ -299,28 +299,26 @@ public class BibleSearch extends AppCompatActivity {
     }
 
     private void showGestureView() {
-        if(gestureView != null) {
+        if (gestureView != null) {
             gestureView.setVisibility(View.VISIBLE);
             Log.d(TAG, "Shown gestureView");
 
-            if(scrollImageView != null) {
+            if (scrollImageView != null) {
                 scrollImageView.setVisibility(View.VISIBLE);
                 Log.d(TAG, "Shown scrollImageView");
             }
 
-            // Hide the entry keyboard
-            SearchView searchView = (SearchView) findViewById(R.id.searchView);
-            searchView.clearFocus();
+            hideKeyboard();
         }
     }
 
     private void hideGestureView() {
-        if(gestureView != null) {
+        if (gestureView != null) {
             gestureView.setVisibility(View.INVISIBLE);
             Log.d(TAG, "Hidden gestureView");
         }
 
-        if(scrollImageView != null) {
+        if (scrollImageView != null) {
             scrollImageView.setVisibility(View.INVISIBLE);
             Log.d(TAG, "Hidden scrollImageView");
         }
@@ -338,9 +336,17 @@ public class BibleSearch extends AppCompatActivity {
      * Close progress dialog
      */
     public void closeDialog() {
-        if(progressDialog != null) {
+        if (progressDialog != null) {
             progressDialog.dismiss();
         }
+    }
+
+    /**
+     * Hide the text entry keyboard
+     */
+    private void hideKeyboard() {
+        SearchView searchView = (SearchView) findViewById(R.id.searchView);
+        searchView.clearFocus();
     }
 
     public void sendCastMessage(String message) {
@@ -390,6 +396,7 @@ public class BibleSearch extends AppCompatActivity {
     public Activity getActivity() {
         return this;
     }
+
 
     private class ScrollOnTouchListener implements View.OnTouchListener {
 

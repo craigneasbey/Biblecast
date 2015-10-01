@@ -18,9 +18,6 @@ public class BibleSearchFragment extends Fragment {
 
     private static final String TAG = BibleSearchFragment.class.getSimpleName();
 
-    public BibleSearchFragment() {
-    }
-
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
