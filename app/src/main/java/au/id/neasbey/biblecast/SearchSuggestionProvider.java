@@ -26,25 +26,25 @@ public class SearchSuggestionProvider extends ContentProvider {
 
     private static final String TAG = SearchSuggestionProvider.class.getSimpleName();
 
-    static final String PROVIDER_NAME = "au.id.neasbey.biblecast.SearchSuggestion";
-    static final String URL = "content://" + PROVIDER_NAME + "/suggestions";
-    static final Uri CONTENT_URI = Uri.parse(URL);
+    public static final String PROVIDER_NAME = "au.id.neasbey.biblecast.SearchSuggestion";
+    public static final String URL = "content://" + PROVIDER_NAME + "/suggestions";
+    public static final Uri CONTENT_URI = Uri.parse(URL);
 
     // database fields
-    static final String ID = BaseColumns._ID;
-    static final String SUGGESTION = SearchManager.SUGGEST_COLUMN_TEXT_1;
+    public static final String ID = BaseColumns._ID;
+    public static final String SUGGESTION = SearchManager.SUGGEST_COLUMN_TEXT_1;
 
     // integer values used in content URI
-    static final int SUGGESTIONS = 1;
-    static final int SUGGESTIONS_ID = 2;
-    static final int SUGGESTIONS_SEARCH = 3;
+    public static final int SUGGESTIONS = 1;
+    public static final int SUGGESTIONS_ID = 2;
+    public static final int SUGGESTIONS_SEARCH = 3;
 
     // maps content URI "patterns" to the integer values that were set above
-    static final UriMatcher uriMatcher;
-    static final String DATABASE_NAME = "Biblecast";
-    static final String TABLE_NAME = "SearchSuggestions";
-    static final int DATABASE_VERSION = 1;
-    static final String CREATE_TABLE = " CREATE TABLE " + TABLE_NAME + " (" + ID +" INTEGER PRIMARY KEY AUTOINCREMENT, " + SUGGESTION + " TEXT NOT NULL);";
+    public static final UriMatcher uriMatcher;
+    public static final String DATABASE_NAME = "Biblecast";
+    public static final String TABLE_NAME = "SearchSuggestions";
+    public static final int DATABASE_VERSION = 1;
+    public static final String CREATE_TABLE = " CREATE TABLE " + TABLE_NAME + " (" + ID +" INTEGER PRIMARY KEY AUTOINCREMENT, " + SUGGESTION + " TEXT NOT NULL);";
 
     // projection map for a query
     private static HashMap<String, String> suggestionMap = buildColumnMap();
