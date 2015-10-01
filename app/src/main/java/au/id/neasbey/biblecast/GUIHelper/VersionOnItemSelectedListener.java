@@ -29,6 +29,8 @@ public class VersionOnItemSelectedListener implements AdapterView.OnItemSelected
     public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
         bibleSearch.setBibleVersion(((BibleVersion) parent.getItemAtPosition(position)).getId());
         Log.d(TAG, "BibleVersion: " + bibleSearch.getBibleVersion());
+
+        bibleSearch.performSearch();
     }
 
     @Override

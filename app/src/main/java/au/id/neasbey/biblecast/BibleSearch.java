@@ -256,6 +256,14 @@ public class BibleSearch extends AppCompatActivity {
         return true;
     }
 
+    /**
+     * Perform a search on with the current parameters
+     */
+    public void performSearch() {
+        SearchView searchView = (SearchView) findViewById(R.id.searchView);
+        searchView.setQuery(searchView.getQuery(), true);
+    }
+
     public void updateResultView() {
         // Notify the list adapter the data has changed
         resultsAdapter.notifyDataSetChanged();
