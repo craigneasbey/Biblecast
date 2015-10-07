@@ -1,11 +1,14 @@
 package au.id.neasbey.biblecast.cast;
 
-import android.os.CountDownTimer;
+//import android.os.CountDownTimer;
+import android.os.Looper;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 
-import au.id.neasbey.biblecast.BibleSearch;
+import java.util.logging.XMLFormatter;
+
+import au.id.neasbey.biblecast.util.CountDownTimer;
 
 /**
  * Created by craigneasbey on 1/10/15.
@@ -13,12 +16,17 @@ import au.id.neasbey.biblecast.BibleSearch;
  * Listener for scroll motions on the gesture view during google casting and sends the offset to the cast device
  */
 public class ScrollGestureListener extends GestureDetector.SimpleOnGestureListener {
+
     private final String TAG = ScrollGestureListener.class.getName();
 
-    private BibleSearch bibleSearch;
+    private BibleCast bibleCast;
 
-    public ScrollGestureListener(BibleSearch bibleSearch) {
-        this.bibleSearch = bibleSearch;
+    private boolean allowScroll;
+
+    public ScrollGestureListener(BibleCast bibleCast) {
+        this.bibleCast = bibleCast;
+
+        allowScroll = true;
     }
 
     @Override
@@ -26,11 +34,15 @@ public class ScrollGestureListener extends GestureDetector.SimpleOnGestureListen
                             float distanceX, float distanceY) {
         Log.d(TAG, "OnScroll: " + distanceY);
 
-        int offSet = Math.round(distanceY);
+        if(allowScroll || distanceX == 0) {
+            int offSet = Math.round(distanceY);
 
-        // if there is a change more than a pixel, send the scroll off set to cast
-        if (offSet != 0) {
-            bibleSearch.sendCastMessage("{ \"gesture\" : \"scroll\", \"offset\" : \"" + offSet + "\" }");
+            // if there is a change more than a pixel, send the scroll off set to cast
+            if (offSet != 0) {
+                bibleCast.sendMessage("{ \"gesture\" : \"scroll\", \"offset\" : \"" + offSet + "\" }");
+            }
+        } else {
+            Log.d(TAG, "Disallowed scroll: " + distanceY);
         }
 
         return false;
@@ -68,18 +80,33 @@ public class ScrollGestureListener extends GestureDetector.SimpleOnGestureListen
         @Override
         public void run() {
             // TODO needs tuning
-            distanceX = velocityX * -1 / 20;
-            distanceY = velocityY * -1 / 20;
+            final int durationRatio = 4;
+            final int reductionRatio = 5;
 
-            new CountDownTimer((long) Math.abs(velocityY) / 8, 10) {
+            allowScroll = false;
+            distanceX = 0; // not used
+            distanceY = velocityY * -1 / 10; // invert sign
+
+            long durationMilliSec = (long) Math.abs(velocityY) / durationRatio;
+            int tickIntervalMilliSec = (int)durationMilliSec / reductionRatio / durationRatio;
+
+            Log.d(TAG, "durationMilliSec: " + durationMilliSec);
+            Log.d(TAG, "tickIntervalMilliSec: " + tickIntervalMilliSec);
+
+            new CountDownTimer(durationMilliSec, tickIntervalMilliSec) {
 
                 public void onTick(long millisUntilFinished) {
+                    // for testing
+                    //Log.d(TAG, "millisUntilFinished: " + millisUntilFinished);
                     onScroll(e1, e2, distanceX, distanceY);
-                    distanceY -= distanceY / 10;
+                    distanceY -= distanceY / reductionRatio;
                 }
 
                 public void onFinish() {
                     onScroll(e1, e2, distanceX, distanceY);
+                    Log.d(TAG, "finish");
+
+                    allowScroll = true;
                 }
             }.start();
         }

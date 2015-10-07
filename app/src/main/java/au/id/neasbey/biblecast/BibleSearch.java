@@ -136,7 +136,7 @@ public class BibleSearch extends AppCompatActivity {
         gestureView = (GestureOverlayView) findViewById(R.id.gestureView);
         gestureView.setOnTouchListener(new ScrollOnTouchListener());
         gestureView.setGestureVisible(false);
-        mDetector = new GestureDetectorCompat(this, new ScrollGestureListener(this));
+        mDetector = new GestureDetectorCompat(this, new ScrollGestureListener(bibleCast));
 
         scrollImageView = (ImageView) findViewById(R.id.scrollImageView);
     }

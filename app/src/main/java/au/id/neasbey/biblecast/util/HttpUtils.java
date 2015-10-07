@@ -70,7 +70,7 @@ public class HttpUtils {
      *
      * @param sentence
      * @param sq
-     * @return
+     * @return String with HTML anchors between each sentence
      */
     public static String addAnchors(String sentence, SequenceNumber sq) {
 

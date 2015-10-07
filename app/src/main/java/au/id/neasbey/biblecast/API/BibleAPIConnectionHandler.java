@@ -73,8 +73,8 @@ public abstract class BibleAPIConnectionHandler {
     };
 
     /**
-     *
-     * @return
+     * Extracts the response data from the Bible API response stream
+     * @return A BibleAPIResponse object containing the response data
      * @throws BiblecastException
      */
     public BibleAPIResponse getResponse() throws BiblecastException {
