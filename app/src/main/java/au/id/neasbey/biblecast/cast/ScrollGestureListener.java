@@ -62,44 +62,45 @@ public class ScrollGestureListener extends GestureDetector.SimpleOnGestureListen
      */
     private class FlingRunnable implements Runnable {
 
+		protected static final int   DURATION_MS    = 1200;
+		protected static final int   TICK_TIME_MS   = 17; // ~60fps
+		protected static final float VELOCITY_SCALE = 1f; // scaling factor to turn velocityX/Y into px/sec
+		
         protected MotionEvent e1;
         protected MotionEvent e2;
-        protected float velocityX;
-        protected float velocityY;
-        protected float distanceX;
-        protected float distanceY;
-
+        protected float velocityX; // px/tick
+        protected float velocityY; // px/tick
 
         public FlingRunnable(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
             this.e1 = e1;
             this.e2 = e2;
-            this.velocityX = velocityX;
-            this.velocityY = velocityY;
+            this.velocityX = velocityX * VELOCITY_SCALE * TICK_TIME_MS / 1000;
+            this.velocityY = velocityY * VELOCITY_SCALE * TICK_TIME_MS / 1000;
         }
 
         @Override
         public void run() {
-            // TODO needs tuning
-            final int durationRatio = 4;
-            final int reductionRatio = 5;
-
+			
+			// Parabolic curve (linear deceleration)
+			// - reduces the velocity by a constant amount each tick
+			
+			final int totalTicks = DURATION_MS / TICK_TIME_MS;
+			final float stepwiseReductionX = velocityX / totalTicks;
+			final float stepwiseReductionY = velocityY / totalTicks;
+			
             allowScroll = false;
-            distanceX = 0; // not used
-            distanceY = velocityY * -1 / 10; // invert sign
-
-            long durationMilliSec = (long) Math.abs(velocityY) / durationRatio;
-            int tickIntervalMilliSec = (int)durationMilliSec / reductionRatio / durationRatio;
-
-            Log.d(TAG, "durationMilliSec: " + durationMilliSec);
-            Log.d(TAG, "tickIntervalMilliSec: " + tickIntervalMilliSec);
-
-            new CountDownTimer(durationMilliSec, tickIntervalMilliSec) {
+			
+            new CountDownTimer(DURATION_MS, TICK_TIME_MS) {
 
                 public void onTick(long millisUntilFinished) {
-                    // for testing
-                    //Log.d(TAG, "millisUntilFinished: " + millisUntilFinished);
+					distanceX = velocityX; // already in px/tick
+					distanceY = velocityY; // already in px/tick
+					
+					// AW: assuming this applies a one-off incremental change
                     onScroll(e1, e2, distanceX, distanceY);
-                    distanceY -= distanceY / reductionRatio;
+					
+					velocityX -= stepwiseReductionX;
+					velocityY -= stepwiseReductionY;
                 }
 
                 public void onFinish() {
