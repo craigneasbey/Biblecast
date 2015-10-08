@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 
+import au.id.neasbey.biblecast.exception.BiblecastException;
 import au.id.neasbey.biblecast.R;
 import au.id.neasbey.biblecast.util.UIUtils;
 import au.id.neasbey.biblecast.util.URLWrapper;
@@ -49,9 +50,9 @@ public abstract class BibleAPIConnectionHandler {
     /**
      * Validates URL and opens connection to the BibleAPI
      *
-     * @throws BibleSearchAPIException
+     * @throws BiblecastException
      */
-    public void connect(URLWrapper urlWrapper) throws BibleSearchAPIException {
+    public void connect(URLWrapper urlWrapper) throws BiblecastException {
 
         authenticate();
 
@@ -59,24 +60,24 @@ public abstract class BibleAPIConnectionHandler {
             // Send HTTP Get request
             httpUrlConnection = urlWrapper.openConnection();
         } catch (IOException io) {
-            throw new BibleSearchAPIException(UIUtils.getContext().getString(R.string.api_error_connection) + io.getMessage());
+            throw new BiblecastException(UIUtils.getContext().getString(R.string.api_error_connection) + io.getMessage());
         }
     }
 
     /**
      * By default, no authentication is required. Override this method set authentication.
      *
-     * @throws BibleSearchAPIException
+     * @throws BiblecastException
      */
-    protected void authenticate() throws BibleSearchAPIException {
+    protected void authenticate() throws BiblecastException {
     };
 
     /**
-     *
-     * @return
-     * @throws BibleSearchAPIException
+     * Extracts the response data from the Bible API response stream
+     * @return A BibleAPIResponse object containing the response data
+     * @throws BiblecastException
      */
-    public BibleAPIResponse getResponse() throws BibleSearchAPIException {
+    public BibleAPIResponse getResponse() throws BiblecastException {
         BibleAPIResponse bibleAPIResponse = new BibleAPIResponse();
 
         getResponseStatus(bibleAPIResponse);
@@ -88,15 +89,15 @@ public abstract class BibleAPIConnectionHandler {
     /**
      * Retrieves the response status from the HTTP connection
      * @param bibleAPIResponse Collects response status
-     * @throws BibleSearchAPIException
+     * @throws BiblecastException
      */
-    protected void getResponseStatus(BibleAPIResponse bibleAPIResponse) throws BibleSearchAPIException {
+    protected void getResponseStatus(BibleAPIResponse bibleAPIResponse) throws BiblecastException {
 
         try {
             bibleAPIResponse.setResponseCode(getHttpUrlConnection().getResponseCode());
             bibleAPIResponse.setResponseMessage(getHttpUrlConnection().getResponseMessage());
         } catch (IOException ioe) {
-            throw new BibleSearchAPIException(UIUtils.getContext().getString(R.string.api_error_response) + ioe.getMessage());
+            throw new BiblecastException(UIUtils.getContext().getString(R.string.api_error_response) + ioe.getMessage());
         }
 
         Log.d(TAG, "Response code: " + bibleAPIResponse.getResponseCode());
@@ -107,9 +108,9 @@ public abstract class BibleAPIConnectionHandler {
      * Get HTTP response data string
      *
      * @param bibleAPIResponse Response object
-     * @throws BibleSearchAPIException
+     * @throws BiblecastException
      */
-    protected void getResponseData(BibleAPIResponse bibleAPIResponse) throws BibleSearchAPIException {
+    protected void getResponseData(BibleAPIResponse bibleAPIResponse) throws BiblecastException {
 
         BufferedReader reader = null;
         StringBuilder responseText = new StringBuilder();
@@ -129,7 +130,7 @@ public abstract class BibleAPIConnectionHandler {
                 responseText.append(line);
             }
         } catch (IOException ioe) {
-            throw new BibleSearchAPIException(ioe.getMessage());
+            throw new BiblecastException(ioe.getMessage());
         } finally {
             try {
                 if (reader != null) {

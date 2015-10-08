@@ -5,55 +5,171 @@ import android.app.ProgressDialog;
 import android.app.SearchManager;
 import android.content.Context;
 import android.content.Intent;
-import android.os.AsyncTask;
+import android.gesture.GestureOverlayView;
 import android.os.Bundle;
+import android.support.v4.view.GestureDetectorCompat;
+import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.app.MediaRouteActionProvider;
 import android.text.Spanned;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
+import android.view.View;
 import android.widget.ArrayAdapter;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.SearchView;
+import android.widget.Spinner;
 
+import java.io.Serializable;
 import java.util.LinkedList;
 import java.util.List;
 
-import au.id.neasbey.biblecast.API.BibleAPI;
-import au.id.neasbey.biblecast.API.BibleAPIConnectionHandler;
-import au.id.neasbey.biblecast.API.BibleAPIResponseParser;
-import au.id.neasbey.biblecast.API.BibleOrg.BibleAPIBibleOrg;
-import au.id.neasbey.biblecast.API.BibleOrg.BibleAPIConnectionHandlerBibleOrg;
-import au.id.neasbey.biblecast.API.BibleOrg.BibleAPIResponseParserBibleOrg;
+import au.id.neasbey.biblecast.API.BibleAPIQueryType;
+import au.id.neasbey.biblecast.API.BibleAPITask;
+import au.id.neasbey.biblecast.GUIHelper.SearchOnSuggestionListener;
+import au.id.neasbey.biblecast.GUIHelper.VersionOnItemSelectedListener;
+import au.id.neasbey.biblecast.cast.BibleCast;
+import au.id.neasbey.biblecast.cast.ScrollGestureListener;
+import au.id.neasbey.biblecast.model.BibleVersion;
+import au.id.neasbey.biblecast.util.HttpUtils;
 import au.id.neasbey.biblecast.util.UIUtils;
 
 /**
  * Created by craigneasbey on 30/06/15.
- *
- * Activity that allows the user to enter bible search term and return results from a web service
+ * <p/>
+ * Activity that allows the user to enter bible search term, view the returned results from a web service
+ * and display them on Google cast device.
  */
 public class BibleSearch extends AppCompatActivity {
 
     private static final String TAG = BibleSearch.class.getSimpleName();
-    private String apiURL;
-    private String apiUsername;
-    private String apiPassword;
+
+    private static final String LANGUAGE_ENG_US = "eng-US";
+
+    private static final String DEFAULT_VERSION = "eng-NASB";
+
+    private static final String STATE_BOOKS = "books";
+
+    private static final String STATE_VERSIONS = "versions";
+
+    private static final String STATE_RESULTS = "results";
+
+    private BibleCast bibleCast;
+
+    private boolean resultsExist;
+
+    private String bibleVersion;
+
+    private Spinner versionSpinner;
+
+    private List<BibleVersion> versionList;
+
+    private ArrayAdapter<BibleVersion> versionAdapter;
+
+    private List<String> bookList;
+
+    private List<Spanned> resultList;
+
+    private ArrayAdapter<Spanned> resultsAdapter;
+
+    private ListView resultView;
+
+    private GestureOverlayView gestureView;
+
+    private ImageView scrollImageView;
+
+    private GestureDetectorCompat mDetector;
+
+    private ProgressDialog progressDialog;
+
+    public BibleSearch() {
+        bibleVersion = DEFAULT_VERSION;
+        versionList = new LinkedList<>();
+        bookList = new LinkedList<>();
+        resultList = new LinkedList<>();
+        resultsExist = false;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Log.d(TAG, "onCreate");
 
-        UIUtils.setContext(this);
+        // restore previous results
+        if (savedInstanceState != null) {
+            bookList = (List<String>) savedInstanceState.getSerializable(STATE_BOOKS);
+            versionList = (List<BibleVersion>) savedInstanceState.getSerializable(STATE_VERSIONS);
+            resultList = (List<Spanned>) savedInstanceState.getSerializable(STATE_RESULTS);
+        }
+
         setContentView(R.layout.activity_bible_search);
+        UIUtils.setContext(this);
+        bibleCast = new BibleCast(this);
+        progressDialog = new ProgressDialog(this);
 
-        apiURL = getText(R.string.api_url).toString();
-        apiUsername = getText(R.string.api_username).toString();
-        apiPassword = getText(R.string.api_password).toString();
-        handleIntent(getIntent());
+        setupResultsView();
+        setupGestureView();
+        setupVersionSpinner();
+
+        getBibleVersions();
+        getBookSuggestions();
     }
 
+    /**
+     * Link the resultView to the resultList via an array adapter so that the results can be displayed
+     */
+    private void setupResultsView() {
+        // TODO change TextView resource to suit paragraphs
+        resultsAdapter = new ArrayAdapter<>(this, R.layout.result_list_item, resultList);
+        resultView = (ListView) findViewById(R.id.resultView);
+        resultView.setAdapter(resultsAdapter);
+    }
 
+    /**
+     * Setup the gestureView to handle scroll and fling gestures when connected to cast
+     */
+    protected void setupGestureView() {
+        gestureView = (GestureOverlayView) findViewById(R.id.gestureView);
+        gestureView.setOnTouchListener(new ScrollOnTouchListener());
+        gestureView.setGestureVisible(false);
+        mDetector = new GestureDetectorCompat(this, new ScrollGestureListener(bibleCast));
+
+        scrollImageView = (ImageView) findViewById(R.id.scrollImageView);
+    }
+
+    private void setupVersionSpinner() {
+        // may need this: http://stackoverflow.com/questions/1625249/android-how-to-bind-spinner-to-custom-object-list
+        versionAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, versionList);
+        versionAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+
+        versionSpinner = (Spinner) findViewById(R.id.versionSpinner);
+        versionSpinner.setAdapter(versionAdapter);
+        versionSpinner.setOnItemSelectedListener(new VersionOnItemSelectedListener(this));
+    }
+
+    /**
+     * Get the bible versions from the Bible API for the version spinner
+     */
+    private void getBibleVersions() {
+        new BibleAPITask(this).execute(BibleAPIQueryType.VERSION.name(), getText(R.string.api_versions_url).toString(), LANGUAGE_ENG_US);
+    }
+
+    /**
+     * Get the bible books from the Bible API to add to the search query sugguestions
+     */
+    private void getBookSuggestions() {
+        new BibleAPITask(this).execute(BibleAPIQueryType.BOOK.name(), getText(R.string.api_books_url).toString());
+    }
+
+    /**
+     * Receive new intent and call handle function
+     *
+     * @param intent The intent for application search
+     */
     @Override
     protected void onNewIntent(Intent intent) {
         setIntent(intent);
@@ -67,11 +183,59 @@ public class BibleSearch extends AppCompatActivity {
      */
     private void handleIntent(Intent intent) {
         if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
+            // Handle search
             String query = intent.getStringExtra(SearchManager.QUERY);
-            new BibleAPITask().execute(query, apiURL, apiUsername, apiPassword);
+
+            // only search if there is a query term
+            if (!TextUtils.isEmpty(query)) {
+                new BibleAPITask(this).execute(BibleAPIQueryType.SEARCH.name(), getText(R.string.api_search_url).toString(), query.toLowerCase(), bibleVersion);
+            }
         }
     }
 
+    @Override
+    protected void onStart() {
+        super.onStart();
+        Log.d(TAG, "onStart");
+
+        bibleCast.startMediaDiscovery();
+    }
+
+    @Override
+    protected void onStop() {
+        Log.d(TAG, "onStop");
+
+        bibleCast.endMediaDiscovery();
+        super.onStop();
+    }
+
+    @Override
+    public void onDestroy() {
+        Log.d(TAG, "onDestroy");
+
+        // Close cast connection
+        bibleCast.teardown(true);
+
+        super.onDestroy();
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle savedInstanceState) {
+        super.onSaveInstanceState(savedInstanceState);
+
+        savedInstanceState.putSerializable(STATE_BOOKS, (Serializable) bookList);
+        savedInstanceState.putSerializable(STATE_VERSIONS, (Serializable) versionList);
+        savedInstanceState.putSerializable(STATE_RESULTS, (Serializable) resultList);
+    }
+
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+
+        bookList = (List<String>) savedInstanceState.getSerializable(STATE_BOOKS);
+        versionList = (List<BibleVersion>) savedInstanceState.getSerializable(STATE_VERSIONS);
+        resultList = (List<Spanned>) savedInstanceState.getSerializable(STATE_RESULTS);
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -81,124 +245,176 @@ public class BibleSearch extends AppCompatActivity {
         // Get the SearchView and set the searchable configuration
         SearchManager searchManager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
         SearchView searchView = (SearchView) findViewById(R.id.searchView);
-        // Assumes current activity is the searchable activity
         searchView.setSearchableInfo(searchManager.getSearchableInfo(getComponentName()));
+        searchView.setOnSuggestionListener(new SearchOnSuggestionListener(searchView));
+
+        MenuItem mediaRouteMenuItem = menu.findItem(R.id.media_route_menu_item);
+        MediaRouteActionProvider mediaRouteActionProvider = (MediaRouteActionProvider) MenuItemCompat.getActionProvider(mediaRouteMenuItem);
+        // Set the MediaRouteActionProvider selector for device discovery.
+        mediaRouteActionProvider.setRouteSelector(bibleCast.getMediaRouteSelector());
 
         return true;
     }
 
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
-        }
-
-        return super.onOptionsItemSelected(item);
+    /**
+     * Perform a search on with the current parameters
+     */
+    public void performSearch() {
+        SearchView searchView = (SearchView) findViewById(R.id.searchView);
+        searchView.setQuery(searchView.getQuery(), true);
     }
 
-    private Activity getActivity() {
-        return this;
+    public void updateResultView() {
+        // Notify the list adapter the data has changed
+        resultsAdapter.notifyDataSetChanged();
+
+        hideKeyboard();
+
+        // send results to cast receiver
+        if(bibleCast.isCastConnected()) {
+            bibleCast.sendMessage(HttpUtils.listToJSON(resultList));
+        }
+    }
+
+    public void updateVersionView() {
+        // Notify the list adapter the data has changed
+        versionAdapter.notifyDataSetChanged();
+
+        // Set default bible version
+        int position = versionAdapter.getPosition(UIUtils.findBibleVersionById(versionList, DEFAULT_VERSION));
+
+        if (position >= 0) {
+            versionSpinner.setSelection(position);
+        }
+    }
+
+    public void showResults() {
+        if (resultView != null) {
+            resultView.setVisibility(View.VISIBLE);
+            Log.d(TAG, "Shown results");
+
+            hideGestureView();
+        }
+    }
+
+    public void hideResults() {
+        if (resultView != null) {
+            resultView.setVisibility(View.INVISIBLE);
+            Log.d(TAG, "Hidden results");
+
+            showGestureView();
+        }
+    }
+
+    private void showGestureView() {
+        if (gestureView != null) {
+            gestureView.setVisibility(View.VISIBLE);
+            Log.d(TAG, "Shown gestureView");
+
+            if (scrollImageView != null) {
+                scrollImageView.setVisibility(View.VISIBLE);
+                Log.d(TAG, "Shown scrollImageView");
+            }
+
+            hideKeyboard();
+        }
+    }
+
+    private void hideGestureView() {
+        if (gestureView != null) {
+            gestureView.setVisibility(View.INVISIBLE);
+            Log.d(TAG, "Hidden gestureView");
+        }
+
+        if (scrollImageView != null) {
+            scrollImageView.setVisibility(View.INVISIBLE);
+            Log.d(TAG, "Hidden scrollImageView");
+        }
     }
 
     /**
-     * Connects to the Bible REST JSON web service, performs a search query, updates the activity with the response JSON
+     * Create and show progress dialog (message)
      */
-    private class BibleAPITask extends AsyncTask<String, String, String> {
+    public void showProgress() {
+        progressDialog.setMessage(getText(R.string.ui_wait));
+        progressDialog.show();
+    }
 
-        private final ProgressDialog progressDialog = new ProgressDialog(BibleSearch.this);
-        private final String bibleVersions = "eng-KJV";
-        private final List<Spanned> resultList = new LinkedList<>();
-        private BibleAPI bibleAPI;
-        private ArrayAdapter<Spanned> resultsAdapter;
-
-        protected void onPreExecute() {
-            // Start Progress Dialog (Message)
-            progressDialog.setMessage(getText(R.string.ui_wait));
-            progressDialog.show();
-
-            // Link the listView to the array adapter so that the results can be displayed
-            resultsAdapter = new ArrayAdapter<>(BibleSearch.this, android.R.layout.simple_list_item_1, resultList);
-
-            ListView listView = (ListView) findViewById(R.id.listView);
-            listView.setAdapter(resultsAdapter);
+    /**
+     * Close progress dialog
+     */
+    public void closeDialog() {
+        if (progressDialog != null) {
+            progressDialog.dismiss();
         }
+    }
+
+    /**
+     * Hide the text entry keyboard
+     */
+    private void hideKeyboard() {
+        SearchView searchView = (SearchView) findViewById(R.id.searchView);
+        searchView.clearFocus();
+    }
+
+    public void sendCastMessage(String message) {
+        bibleCast.sendMessage(message);
+    }
+
+    public String getBibleVersion() {
+        return bibleVersion;
+    }
+
+    public void setBibleVersion(String bibleVersion) {
+        this.bibleVersion = bibleVersion;
+    }
+
+    public List<BibleVersion> getVersions() {
+        return versionList;
+    }
+
+    public void setVersions(List<BibleVersion> versionList) {
+        this.versionList = versionList;
+    }
+
+    public boolean isResultsExist() {
+        return resultsExist;
+    }
+
+    public void setResultsExist(boolean resultsExist) {
+        this.resultsExist = resultsExist;
+    }
+
+    public List<Spanned> getResults() {
+        return resultList;
+    }
+
+    public void setResults(List<Spanned> resultList) {
+        this.resultList = resultList;
+    }
+
+    public List<String> getBooks() {
+        return bookList;
+    }
+
+    public void setBooks(List<String> bookList) {
+        this.bookList = bookList;
+    }
+
+    public Activity getActivity() {
+        return this;
+    }
+
+
+    private class ScrollOnTouchListener implements View.OnTouchListener {
+
+        private final String TAG = ScrollOnTouchListener.class.getName();
 
         @Override
-        protected String doInBackground(String... params) {
-            return queryBibleAPI(params);
-        }
+        public boolean onTouch(View v, MotionEvent event) {
+            mDetector.onTouchEvent(event);
 
-        /**
-         * Queries the Bible API
-         *
-         * @param params query parameters
-         * @return Result response, if populated, an error occurred
-         */
-        private String queryBibleAPI(String... params) {
-
-            // Specifies Bible.org Bible API
-            BibleAPIConnectionHandler bibleAPIConnectionHandler = new BibleAPIConnectionHandlerBibleOrg();
-            BibleAPIResponseParser bibleAPIResponseParser = new BibleAPIResponseParserBibleOrg();
-
-            bibleAPI = new BibleAPIBibleOrg(bibleAPIConnectionHandler, bibleAPIResponseParser);
-            bibleAPI.setQuery(params[0]);
-            bibleAPI.setURL(params[1]);
-            bibleAPI.setUsername(params[2]);
-            bibleAPI.setPassword(params[3]);
-            bibleAPI.setVersions(bibleVersions);
-
-            return bibleAPI.query();
-        }
-
-        protected void onPostExecute(String result) {
-
-            // Close progress dialog
-            progressDialog.dismiss();
-
-            if (isResultSuccessful(result)) {
-                // Notify the list adapter the data has changed
-                resultsAdapter.notifyDataSetChanged();
-
-                // Hide the entry keyboard
-                SearchView searchView = (SearchView) findViewById(R.id.searchView);
-                searchView.clearFocus();
-            }
-        }
-
-        /**
-         * Checks result response test and results to see if the query was successful
-         * @param result Response test
-         * @return {@code Boolean.TRUE} if results exist, otherwise {@code Boolean.FALSE}
-         */
-        private boolean isResultSuccessful(String result) {
-
-            if (!TextUtils.isEmpty(result)) {
-                // If result test is populated, an error occurred, then display the error
-                Log.e(TAG, "Request Failed: " + result);
-
-                UIUtils.displayError(getActivity(), R.string.api_failed, getText(R.string.ok).toString(), result);
-            } else if (TextUtils.isEmpty(result) && bibleAPI.hasResults()) {
-                // If result test is empty and there are results, update the results list displayed
-                Log.d(TAG, "Request Successful");
-
-                bibleAPI.updateResultList(resultList);
-
-                return true;
-            } else {
-                // If result test is empty and there are no results, then display the error
-                Log.e(TAG, "No results");
-
-                UIUtils.displayError(getActivity(),
-                        R.string.api_request_complete,
-                        getText(R.string.ok).toString(),
-                        getText(R.string.api_no_results).toString());
-            }
+            Log.d(TAG, "onTouchEvent: " + event.toString());
 
             return false;
         }
