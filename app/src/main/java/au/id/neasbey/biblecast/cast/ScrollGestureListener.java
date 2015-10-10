@@ -62,53 +62,56 @@ public class ScrollGestureListener extends GestureDetector.SimpleOnGestureListen
      */
     private class FlingRunnable implements Runnable {
 
-		protected static final int   DURATION_MS    = 1200;
+		protected static final float DECELERATION   = 300f; // px/s/s
 		protected static final int   TICK_TIME_MS   = 17; // ~60fps
 		protected static final float VELOCITY_SCALE = 1f; // scaling factor to turn velocityX/Y into px/sec
-		
+
         protected MotionEvent e1;
         protected MotionEvent e2;
-        protected float velocityX; // px/tick
         protected float velocityY; // px/tick
+		protected bool isCancelled = false;
 
         public FlingRunnable(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
             this.e1 = e1;
             this.e2 = e2;
-            this.velocityX = velocityX * VELOCITY_SCALE * TICK_TIME_MS / 1000;
+			// AW: algorithm only works for 1D, need a second timer to do 2D
             this.velocityY = velocityY * VELOCITY_SCALE * TICK_TIME_MS / 1000;
         }
 
+		public void cancel() {
+			isCancelled = true;
+			allowScroll = true;
+		}
+
         @Override
         public void run() {
-			
+
 			// Parabolic curve (linear deceleration)
 			// - reduces the velocity by a constant amount each tick
-			
-			final int totalTicks = DURATION_MS / TICK_TIME_MS;
-			final float stepwiseReductionX = velocityX / totalTicks;
-			final float stepwiseReductionY = velocityY / totalTicks;
-			
+
+			final int totalTicks = duration_ms / TICK_TIME_MS;
+			final float decelerationTicksY = DECELERATION * TICK_TIME_MS * TICK_TIME_MS
+					* ((velocityY < 0) ? 1 : -1);
+			final float durationY_ms = -velocityY / decelerationTicksY;
+
+			isCancelled = false;
             allowScroll = false;
-			
-            new CountDownTimer(DURATION_MS, TICK_TIME_MS) {
+
+            new CountDownTimer(durationY_ms, TICK_TIME_MS) {
 
                 public void onTick(long millisUntilFinished) {
-					distanceX = velocityX; // already in px/tick
-					distanceY = velocityY; // already in px/tick
-					
-					// AW: assuming this applies a one-off incremental change
-                    onScroll(e1, e2, distanceX, distanceY);
-					
-					velocityX -= stepwiseReductionX;
-					velocityY -= stepwiseReductionY;
+					if (!isCancelled)
+					{
+						onScroll(e1, e2, 0, velocityY); // already in px/tick
+						velocityY -= decelerationTicksY;
+					}
                 }
 
                 public void onFinish() {
-                    onScroll(e1, e2, distanceX, distanceY);
                     Log.d(TAG, "finish");
-
                     allowScroll = true;
                 }
+
             }.start();
         }
     }
