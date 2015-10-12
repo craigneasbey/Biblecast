@@ -62,52 +62,56 @@ public class ScrollGestureListener extends GestureDetector.SimpleOnGestureListen
      */
     private class FlingRunnable implements Runnable {
 
+		protected static final float DECELERATION   = 300f; // px/s/s
+		protected static final int   TICK_TIME_MS   = 17; // ~60fps
+		protected static final float VELOCITY_SCALE = 1f; // scaling factor to turn velocityX/Y into px/sec
+
         protected MotionEvent e1;
         protected MotionEvent e2;
-        protected float velocityX;
-        protected float velocityY;
-        protected float distanceX;
-        protected float distanceY;
-
+        protected float velocityY; // px/tick
+		protected bool isCancelled = false;
 
         public FlingRunnable(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
             this.e1 = e1;
             this.e2 = e2;
-            this.velocityX = velocityX;
-            this.velocityY = velocityY;
+			// AW: algorithm only works for 1D, need a second timer to do 2D
+            this.velocityY = velocityY * VELOCITY_SCALE * TICK_TIME_MS / 1000;
         }
+
+		public void cancel() {
+			isCancelled = true;
+			allowScroll = true;
+		}
 
         @Override
         public void run() {
-            // TODO needs tuning
-            final int durationRatio = 4;
-            final int reductionRatio = 5;
 
+			// Parabolic curve (linear deceleration)
+			// - reduces the velocity by a constant amount each tick
+
+			final int totalTicks = duration_ms / TICK_TIME_MS;
+			final float decelerationTicksY = DECELERATION * TICK_TIME_MS * TICK_TIME_MS
+					* ((velocityY < 0) ? 1 : -1);
+			final float durationY_ms = -velocityY / decelerationTicksY;
+
+			isCancelled = false;
             allowScroll = false;
-            distanceX = 0; // not used
-            distanceY = velocityY * -1 / 10; // invert sign
 
-            long durationMilliSec = (long) Math.abs(velocityY) / durationRatio;
-            int tickIntervalMilliSec = (int)durationMilliSec / reductionRatio / durationRatio;
-
-            Log.d(TAG, "durationMilliSec: " + durationMilliSec);
-            Log.d(TAG, "tickIntervalMilliSec: " + tickIntervalMilliSec);
-
-            new CountDownTimer(durationMilliSec, tickIntervalMilliSec) {
+            new CountDownTimer(durationY_ms, TICK_TIME_MS) {
 
                 public void onTick(long millisUntilFinished) {
-                    // for testing
-                    //Log.d(TAG, "millisUntilFinished: " + millisUntilFinished);
-                    onScroll(e1, e2, distanceX, distanceY);
-                    distanceY -= distanceY / reductionRatio;
+					if (!isCancelled)
+					{
+						onScroll(e1, e2, 0, velocityY); // already in px/tick
+						velocityY -= decelerationTicksY;
+					}
                 }
 
                 public void onFinish() {
-                    onScroll(e1, e2, distanceX, distanceY);
                     Log.d(TAG, "finish");
-
                     allowScroll = true;
                 }
+
             }.start();
         }
     }
