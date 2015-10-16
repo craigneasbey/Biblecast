@@ -12,10 +12,12 @@ import java.util.TimerTask;
  * <pre class="prettyprint">
  * new CountDownTimer(durationMilliSec, tickIntervalMilliSec) {
  *
+ *     {@literal @}Override
  *     public void onTick(long millisUntilFinished) {
  *         Log.d(TAG, "seconds remaining: " + millisUntilFinished / 1000);
  *     }
  *
+ *     {@literal @}Override
  *     public void onFinish() {
  *         Log.d(TAG, "finish");
  *     }
@@ -85,4 +87,11 @@ public abstract class CountDownTimer {
      * Occurs after the last tick
      */
     protected abstract void onFinish();
+
+    /**
+     * Cancel the count down
+     */
+    public void cancel() {
+        timer.cancel();
+    }
 }

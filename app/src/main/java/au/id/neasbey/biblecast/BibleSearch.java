@@ -117,6 +117,9 @@ public class BibleSearch extends AppCompatActivity {
 
         getBibleVersions();
         getBookSuggestions();
+
+        // for debug only
+        //hideResults();
     }
 
     /**
@@ -357,10 +360,6 @@ public class BibleSearch extends AppCompatActivity {
         searchView.clearFocus();
     }
 
-    public void sendCastMessage(String message) {
-        bibleCast.sendMessage(message);
-    }
-
     public String getBibleVersion() {
         return bibleVersion;
     }
@@ -414,7 +413,8 @@ public class BibleSearch extends AppCompatActivity {
         public boolean onTouch(View v, MotionEvent event) {
             mDetector.onTouchEvent(event);
 
-            Log.d(TAG, "onTouchEvent: " + event.toString());
+            // for debug
+            //Log.d(TAG, "onTouchEvent: " + event.toString());
 
             return false;
         }

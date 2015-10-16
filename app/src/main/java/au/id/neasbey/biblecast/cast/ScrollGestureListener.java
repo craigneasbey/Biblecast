@@ -1,18 +1,18 @@
 package au.id.neasbey.biblecast.cast;
 
-//import android.os.CountDownTimer;
-import android.os.Looper;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 
-import java.util.logging.XMLFormatter;
+import org.json.JSONException;
+import org.json.JSONObject;
 
-import au.id.neasbey.biblecast.util.CountDownTimer;
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * Created by craigneasbey on 1/10/15.
- *
+ * <p/>
  * Listener for scroll motions on the gesture view during google casting and sends the offset to the cast device
  */
 public class ScrollGestureListener extends GestureDetector.SimpleOnGestureListener {
@@ -21,12 +21,52 @@ public class ScrollGestureListener extends GestureDetector.SimpleOnGestureListen
 
     private BibleCast bibleCast;
 
+    private CastMessageBuffer castMessageBuffer;
+
+    private List<FlingRunnable> flingRunnableList;
+
     private boolean allowScroll;
 
     public ScrollGestureListener(BibleCast bibleCast) {
         this.bibleCast = bibleCast;
 
+        final int sendSizeThreshold = 5;
+        final long durationMilliSec = 200;
+        flingRunnableList = new LinkedList<>();
         allowScroll = true;
+        castMessageBuffer = new CastMessageBuffer(sendSizeThreshold, durationMilliSec) {
+
+            @Override
+            protected Object concatenateMessages(List<Object> messages) {
+                int offSet = 0;
+
+                for (Object newOffSet : messages) {
+                    offSet += (int) newOffSet;
+                }
+
+                return offSet;
+            }
+
+            @Override
+            public void sendMessage(Object message) {
+                sendJSONMessage((Integer) message);
+            }
+        };
+        castMessageBuffer.start();
+    }
+
+    public void sendJSONMessage(int offset) {
+
+        JSONObject jsonMessage = new JSONObject();
+
+        try {
+            jsonMessage.put("gesture", "scroll");
+            jsonMessage.put("offset", offset);
+        } catch (JSONException je) {
+            Log.e(TAG, je.getMessage());
+        }
+
+        bibleCast.sendMessage(jsonMessage.toString());
     }
 
     @Override
@@ -34,14 +74,15 @@ public class ScrollGestureListener extends GestureDetector.SimpleOnGestureListen
                             float distanceX, float distanceY) {
         Log.d(TAG, "OnScroll: " + distanceY);
 
-        if(allowScroll || distanceX == 0) {
+        if (allowScroll || distanceX == 0) {
             int offSet = Math.round(distanceY);
 
-            // if there is a change more than a pixel, send the scroll off set to cast
+            // if there is a change of at least a pixel, send the scroll off set to cast
             if (offSet != 0) {
-                bibleCast.sendMessage("{ \"gesture\" : \"scroll\", \"offset\" : \"" + offSet + "\" }");
+                castMessageBuffer.bufferMessage(offSet);
             }
         } else {
+            // stops erratic behaviour on cast
             Log.d(TAG, "Disallowed scroll: " + distanceY);
         }
 
@@ -52,67 +93,59 @@ public class ScrollGestureListener extends GestureDetector.SimpleOnGestureListen
                            float velocityY) {
         Log.d(TAG, "onFling: " + velocityY);
 
-        new FlingRunnable(e1, e2, velocityX, velocityY).run();
+        FlingRunnable flingRunnable = new FlingRunnableImpl(e1, e2, velocityX, velocityY);
+        flingRunnableList.add(flingRunnable);
+        allowScroll = false;
+        flingRunnable.run();
 
         return false;
     }
 
-    /**
-     * Converts fling motion to decreasing scroll motions
-     */
-    private class FlingRunnable implements Runnable {
-
-		protected static final float DECELERATION   = 300f; // px/s/s
-		protected static final int   TICK_TIME_MS   = 17; // ~60fps
-		protected static final float VELOCITY_SCALE = 1f; // scaling factor to turn velocityX/Y into px/sec
-
-        protected MotionEvent e1;
-        protected MotionEvent e2;
-        protected float velocityY; // px/tick
-		protected bool isCancelled = false;
-
-        public FlingRunnable(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-            this.e1 = e1;
-            this.e2 = e2;
-			// AW: algorithm only works for 1D, need a second timer to do 2D
-            this.velocityY = velocityY * VELOCITY_SCALE * TICK_TIME_MS / 1000;
+    public boolean onDown(MotionEvent e) {
+        if(!flingRunnableList.isEmpty()) {
+            cancelFlings();
         }
 
-		public void cancel() {
-			isCancelled = true;
-			allowScroll = true;
-		}
+        return false;
+    }
+
+    public void cancelFlings() {
+        Log.d(TAG, "cancelFlings");
+
+        for (FlingRunnable flingRunnable : flingRunnableList) {
+            if (flingRunnable != null) {
+                flingRunnable.cancel();
+            }
+        }
+
+        flingRunnableList.clear();
+        allowScroll = true;
+    }
+
+    public void flingComplete(FlingRunnable flingRunnable) {
+        Log.d(TAG, "flingComplete");
+
+        flingRunnableList.remove(flingRunnable);
+
+        if(flingRunnableList.isEmpty()) {
+            allowScroll = true;
+        }
+    }
+
+    private class FlingRunnableImpl extends FlingRunnable {
+
+        public FlingRunnableImpl(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+            super(e1, e2, velocityX, velocityY);
+        }
 
         @Override
-        public void run() {
+        protected boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+            return ScrollGestureListener.this.onScroll(e1, e2, distanceX, distanceY);
+        }
 
-			// Parabolic curve (linear deceleration)
-			// - reduces the velocity by a constant amount each tick
-
-			final int totalTicks = duration_ms / TICK_TIME_MS;
-			final float decelerationTicksY = DECELERATION * TICK_TIME_MS * TICK_TIME_MS
-					* ((velocityY < 0) ? 1 : -1);
-			final float durationY_ms = -velocityY / decelerationTicksY;
-
-			isCancelled = false;
-            allowScroll = false;
-
-            new CountDownTimer(durationY_ms, TICK_TIME_MS) {
-
-                public void onTick(long millisUntilFinished) {
-					if (!isCancelled)
-					{
-						onScroll(e1, e2, 0, velocityY); // already in px/tick
-						velocityY -= decelerationTicksY;
-					}
-                }
-
-                public void onFinish() {
-                    Log.d(TAG, "finish");
-                    allowScroll = true;
-                }
-
-            }.start();
+        @Override
+        protected void flingComplete(FlingRunnable flingRunnable) {
+            ScrollGestureListener.this.flingComplete(flingRunnable);
         }
     }
 }

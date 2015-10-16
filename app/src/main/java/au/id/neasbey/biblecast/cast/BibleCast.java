@@ -85,11 +85,12 @@ public class BibleCast {
      */
     public void sendMessage(String message) {
         if (mApiClient != null && mBiblecastChannel != null) {
+            message = CastUtils.addDelay(message);
+
             Log.d(TAG, "Sending message: " + message);
 
             try {
-                Cast.CastApi.sendMessage(mApiClient,
-                        mBiblecastChannel.getNamespace(), message).setResultCallback(
+                Cast.CastApi.sendMessage(mApiClient, mBiblecastChannel.getNamespace(), message).setResultCallback(
                         new ResultCallback<Status>() {
                             @Override
                             public void onResult(Status result) {
@@ -102,20 +103,33 @@ public class BibleCast {
                 // TODO handle exception
                 Log.e(TAG, "Exception while sending message", e);
             }
+        } else {
+            // for debug only
+            Log.d(TAG, "Debug message: " + message);
         }
     }
 
     /**
      * Parses messages from the google cast
+     *
      * @param message The string message pasted back from the google cast
      */
     private void parseMessage(String message) {
 
         if (!TextUtils.isEmpty(message)) {
+            // Is currently not used. Demonstrates multi-direction JSON communication with google cast
             try {
-                // Is currently not used. Demonstrates multi-direction JSON communication with google cast
                 Dimensions dimensions = CastUtils.parseMessageForDimensions(message);
             } catch (BiblecastException e) {
+                // for debug
+                //Log.d(TAG, e.getMessage());
+            }
+
+            // Performance statistics
+            try {
+                Log.d(TAG, CastUtils.parseMessageForDelay(message));
+            } catch (BiblecastException e) {
+                // for debug
                 Log.d(TAG, e.getMessage());
             }
         }
@@ -212,6 +226,9 @@ public class BibleCast {
 
             // Handle the user route selection.
             mSelectedDevice = CastDevice.getFromBundle(info.getExtras());
+
+            // Log device information
+            Log.d(TAG, CastUtils.getDeviceInfo(mSelectedDevice));
 
             launchReceiver();
         }
@@ -348,7 +365,8 @@ public class BibleCast {
         @Override
         public void onMessageReceived(CastDevice castDevice, String namespace,
                                       String message) {
-            Log.d(TAG, "onMessageReceived: " + message);
+            // for debug
+            //Log.d(TAG, "onMessageReceived: " + message);
 
             if (castDevice.equals(mSelectedDevice) && namespace.equals(getNamespace())) {
                 parseMessage(message);
