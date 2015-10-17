@@ -27,6 +27,8 @@ Add Bibles.org API token with a trailing colon to Biblecast/app/src/main/res/val
 ### Squash Commits
 * https://github.com/ginatrapani/todo.txt-android/wiki/Squash-All-Commits-Related-to-a-Single-Issue-into-a-Single-Commit
 * http://www.syntevo.com/smartgit/howtos/latest/?page=workflows.modify-history
+### .gitignore
+* http://blog.jonathanchannon.com/2012/11/18/gitignore-not-working-fixed/
 
 ## Helpful links
 * http://daringfireball.net/projects/markdown/syntax
