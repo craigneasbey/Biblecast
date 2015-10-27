@@ -2,9 +2,14 @@ package au.id.neasbey.biblecast.API.BiblesOrg;
 
 import android.text.Spanned;
 
-import junit.framework.TestCase;
-
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+import org.robolectric.RobolectricGradleTestRunner;
+import org.robolectric.annotation.Config;
+import org.robolectric.shadows.ShadowLog;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -12,15 +17,16 @@ import java.net.Authenticator;
 import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.PasswordAuthentication;
-import java.util.LinkedList;
 import java.util.List;
 
 import au.id.neasbey.biblecast.API.BibleAPIConnectionHandler;
-import au.id.neasbey.biblecast.API.BibleAPIQueryType;
 import au.id.neasbey.biblecast.API.BibleAPIResponse;
+import au.id.neasbey.biblecast.BuildConfig;
 import au.id.neasbey.biblecast.util.HttpUtils;
 import au.id.neasbey.biblecast.util.URLWrapper;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
 /**
@@ -28,18 +34,24 @@ import static org.mockito.Mockito.when;
  *
  * Tests the Bibles.org connection handler
  */
-public class BibleAPIConnectionHandlerBiblesOrgTest extends TestCase {
+@RunWith(RobolectricGradleTestRunner.class)
+@Config(constants = BuildConfig.class)
+public class BibleAPIConnectionHandlerBiblesOrgTest {
 
     private BibleAPIConnectionHandler objectUnderTest;
 
-    @Override
-    public void setUp() throws Exception {
-        super.setUp();
+    @BeforeClass
+    public static void setupRobolectric() {
+        ShadowLog.stream = System.out;
+    }
 
+    @Before
+    public void setUp() throws Exception {
         objectUnderTest = new BibleAPIConnectionHandlerBiblesOrg();
     }
 
-    public void testConnectAuthentication() throws Exception {
+    @Test
+    public void shouldConnectSuccessfullyWithAuthentication() throws Exception {
 
         final List<Spanned> expectedList = BibleAPIResponseParserBiblesOrgTest.createSearchList(BibleAPIResponseParserBiblesOrgTest.passageType);
         final String responseJSON = BibleAPIResponseParserBiblesOrgTest.createSearchJSON(BibleAPIResponseParserBiblesOrgTest.passageType, true);
@@ -72,7 +84,8 @@ public class BibleAPIConnectionHandlerBiblesOrgTest extends TestCase {
         assertEquals(apiUsername, passwordAuthentication.getUserName());
     }
 
-    public void testGetResponse() throws Exception {
+    @Test
+    public void shouldSuccessfullyGetResponse() throws Exception {
 
         final List<Spanned> expectedList = BibleAPIResponseParserBiblesOrgTest.createSearchList(BibleAPIResponseParserBiblesOrgTest.passageType);
         final String expectedResponseData = BibleAPIResponseParserBiblesOrgTest.createSearchJSON(BibleAPIResponseParserBiblesOrgTest.passageType, true);

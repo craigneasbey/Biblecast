@@ -1,28 +1,38 @@
 package au.id.neasbey.biblecast.API.BiblesOrg;
 
-import android.content.res.Resources;
-import android.test.mock.MockContext;
-import android.test.mock.MockResources;
+import android.app.Activity;
 import android.text.Html;
 import android.text.Spanned;
 
-import junit.framework.TestCase;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.robolectric.RobolectricGradleTestRunner;
+import org.robolectric.annotation.Config;
+import org.robolectric.shadows.ShadowLog;
 
 import java.util.LinkedList;
 import java.util.List;
 
 import au.id.neasbey.biblecast.API.BibleAPIResponse;
 import au.id.neasbey.biblecast.API.BibleAPIResponseParser;
+import au.id.neasbey.biblecast.BuildConfig;
 import au.id.neasbey.biblecast.exception.BiblecastException;
 import au.id.neasbey.biblecast.model.BibleVersion;
 import au.id.neasbey.biblecast.util.UIUtils;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 /**
  * Created by craigneasbey on 11/08/15.
  *
  * Test the Bible,Org Bible API response parser from JSON to list
  */
-public class BibleAPIResponseParserBiblesOrgTest extends TestCase {
+@RunWith(RobolectricGradleTestRunner.class)
+@Config(constants = BuildConfig.class)
+public class BibleAPIResponseParserBiblesOrgTest {
 
     public static final String passageType = "passage";
 
@@ -30,10 +40,13 @@ public class BibleAPIResponseParserBiblesOrgTest extends TestCase {
 
     private BibleAPIResponseParser objectUnderTest;
 
-    @Override
-    public void setUp() throws Exception {
-        super.setUp();
+    @BeforeClass
+    public static void setupRobolectric() {
+        ShadowLog.stream = System.out;
+    }
 
+    @Before
+    public void setUp() throws Exception {
         objectUnderTest = new BibleAPIResponseParserBiblesOrg();
     }
 
@@ -71,14 +84,15 @@ public class BibleAPIResponseParserBiblesOrgTest extends TestCase {
     }
 
     /**
+     * Create test search list data
      *
-     * @param tagType
-     * @return
+     * @param keyType Result key type, passage or verse
+     * @return A list of spanned test HTML
      */
-    public static List<Spanned> createSearchList(String tagType) {
+    public static List<Spanned> createSearchList(String keyType) {
         List<Spanned> spannedList = new LinkedList<>();
 
-        switch (tagType) {
+        switch (keyType) {
             case passageType:
                 // Add expected spanned list
                 spannedList.add(Html.fromHtml("<h4 class=\\\"s2\\\">Nicodemus<\\/h4>"));
@@ -96,9 +110,10 @@ public class BibleAPIResponseParserBiblesOrgTest extends TestCase {
     }
 
     /**
+     * Creates test JSON version data
      *
-     * @param successful
-     * @return
+     * @param successful Is success or failure expected?
+     * @return JSON string
      */
     public static String createVersionJSON(boolean successful) {
         String jsonResponse = "";
@@ -114,8 +129,9 @@ public class BibleAPIResponseParserBiblesOrgTest extends TestCase {
     }
 
     /**
+     * Creates test version list data
      *
-     * @return
+     * @return Sample list of bible versions
      */
     public static List<BibleVersion> createVersionList() {
         List<BibleVersion> versionList = new LinkedList<>();
@@ -133,9 +149,10 @@ public class BibleAPIResponseParserBiblesOrgTest extends TestCase {
     }
 
     /**
+     * Creates test JSON book data
      *
-     * @param successful
-     * @return
+     * @param successful Is success or failure expected?
+     * @return Sample bible book JSON string
      */
     public static String createBookJSON(boolean successful) {
         String jsonResponse = "";
@@ -151,8 +168,9 @@ public class BibleAPIResponseParserBiblesOrgTest extends TestCase {
     }
 
     /**
+     * Creates a list of books for test data
      *
-     * @return
+     * @return Sample bible books list
      */
     public static List<String> createBookList() {
         List<String> bookList = new LinkedList<>();
@@ -164,7 +182,8 @@ public class BibleAPIResponseParserBiblesOrgTest extends TestCase {
         return bookList;
     }
 
-    public void testParseResponseStatusOK() {
+    @Test
+    public void shouldSuccessfullyParseResponseStatusOK() {
 
         final String expectedException = "";
         String actualException = "";
@@ -178,7 +197,8 @@ public class BibleAPIResponseParserBiblesOrgTest extends TestCase {
         assertEquals(expectedException, actualException);
     }
 
-    public void testParseResponseStatusNotFound() {
+    @Test
+    public void shouldSuccessfullyParseResponseStatusNotFound() {
 
         final String expectedException = BibleAPIResponse.RESPONSE_CODE_NOT_FOUND + " - " + BibleAPIResponse.RESPONSE_MESSAGE_NOT_FOUND;
         String actualException = "";
@@ -192,12 +212,13 @@ public class BibleAPIResponseParserBiblesOrgTest extends TestCase {
         assertEquals(expectedException, actualException);
     }
 
-    public void testParseResponseStatusIncorrectToken() {
+    @Test
+    public void shouldFindIncorrectTokenInResponseStatus() {
 
         final String expectedException = "Application API token is incorrect";
         String actualException = "";
 
-        UIUtils.setContext(new TestMockContext(expectedException));
+        UIUtils.setContext(new Activity());
 
         try {
             objectUnderTest.parseResponseStatus(BibleAPIResponse.RESPONSE_CODE_UNAUTHORIZED, BibleAPIResponse.RESPONSE_MESSAGE_UNAUTHORIZED);
@@ -208,7 +229,8 @@ public class BibleAPIResponseParserBiblesOrgTest extends TestCase {
         assertEquals(expectedException, actualException);
     }
 
-    public void testParsePassagesJSONResultToListSuccessful() {
+    @Test
+    public void shouldSuccessfullyParsePassagesJSONResultToList() {
         List<Spanned> actualList = new LinkedList<>();
         final String expectedException = "";
         String actualException = "";
@@ -227,14 +249,15 @@ public class BibleAPIResponseParserBiblesOrgTest extends TestCase {
         assertEquals(expectedList.toString(), actualList.toString());
     }
 
-    public void testParsePassagesJSONResultToListFailed() {
+    @Test
+    public void shouldFailToParsePassagesJSONResultToList() {
         List<Spanned> actualList = new LinkedList<>();
-        final String expectedException = "Application API token is incorrect";
+        final String expectedException = "No results found";
         String actualException = "";
 
         final List<Spanned> expectedList = createSearchList(passageType);
         final String jsonTextToParse = createSearchJSON(passageType, false);
-        UIUtils.setContext(new TestMockContext(expectedException));
+        UIUtils.setContext(new Activity());
 
         try {
             actualList = objectUnderTest.parseResponseDataToSpannedList(jsonTextToParse);
@@ -247,7 +270,8 @@ public class BibleAPIResponseParserBiblesOrgTest extends TestCase {
         assertFalse(expectedList.toString().compareTo(actualList.toString()) == 0);
     }
 
-    public void testParseVersesJSONResultToListSuccessful() {
+    @Test
+    public void shouldSuccessfullyParseVersesJSONResultToList() {
         List<Spanned> actualList = new LinkedList<>();
         final String expectedException = "";
         String actualException = "";
@@ -266,14 +290,15 @@ public class BibleAPIResponseParserBiblesOrgTest extends TestCase {
         assertEquals(expectedList.toString(), actualList.toString());
     }
 
-    public void testParseVersesJSONResultToListFailed() {
+    @Test
+    public void shouldFailToParseVersesJSONResultToList() {
         List<Spanned> actualList = new LinkedList<>();
         final String expectedException = "No results found";
         String actualException = "";
 
         final List<Spanned> expectedList = createSearchList(verseType);
         final String jsonTextToParse = createSearchJSON(verseType, false);
-        UIUtils.setContext(new TestMockContext(expectedException));
+        UIUtils.setContext(new Activity());
 
         try {
             actualList = objectUnderTest.parseResponseDataToSpannedList(jsonTextToParse);
@@ -284,35 +309,5 @@ public class BibleAPIResponseParserBiblesOrgTest extends TestCase {
         assertEquals(expectedException, actualException);
         assertFalse(expectedList.size() == actualList.size());
         assertFalse(expectedList.toString().compareTo(actualList.toString()) == 0);
-    }
-
-    /**
-     * Used to mock the UIUtils.getContext().getString() calls;
-     */
-    private class TestMockContext extends MockContext {
-
-        private String mockString;
-
-        public TestMockContext(String mockString) {
-            this.mockString = mockString;
-        }
-
-        @Override
-        public Resources getResources() {
-            return new TestMockResources(mockString);
-        }
-    }
-
-    private class TestMockResources extends MockResources {
-
-        private String mockString;
-
-        public TestMockResources(String mockString) {
-            this.mockString = mockString;
-        }
-
-        public String getString(int id) throws NotFoundException {
-            return mockString;
-        }
     }
 }

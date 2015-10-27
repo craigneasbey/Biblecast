@@ -48,15 +48,12 @@ public abstract class CastMessageBuffer {
 
     private List<Object> buffer;
 
-    private int bufferSize;
-
     public CastMessageBuffer(int sendSizeThreshold, long intervalMilliSec) {
         this.sendSizeThreshold = sendSizeThreshold;
         this.intervalMilliSec = intervalMilliSec;
 
         timer = new Timer();
         buffer = new LinkedList<>();
-        bufferSize = 0;
         sendSize = 0;
     }
 
@@ -78,9 +75,8 @@ public abstract class CastMessageBuffer {
 
         if (sendSize < sendSizeThreshold) {
             //send message
-            sendSize++;
-
             sendMessage(message);
+            sendSize++;
         } else {
             // buffer message
             Log.d(TAG, "buffered: " + message.toString());
@@ -88,28 +84,30 @@ public abstract class CastMessageBuffer {
             synchronized(buffer) {
                 buffer.add(message);
             }
-            bufferSize++;
         }
     }
 
     /**
-     * Send buffer and reset
+     * Send buffer and reset, allowing more direct messages again
      */
     public void resetBuffer() {
+        beforeBufferReset(sendSize);
 
         synchronized(buffer) {
             if (!buffer.isEmpty()) {
                 Log.d(TAG, "buffer:" + buffer.toString());
-                Log.d(TAG, "bufferSize:" + bufferSize);
+                Log.d(TAG, "bufferSize:" + buffer.size());
                 Log.d(TAG, "sendSize:" + sendSize);
 
                 sendMessage(concatenateMessages(buffer));
                 buffer.clear();
+                sendSize = 1;
+            } else {
+                sendSize = 0;
             }
         }
 
-        bufferSize = 0;
-        sendSize = 0;
+        afterBufferReset();
     }
 
     /**
@@ -125,6 +123,17 @@ public abstract class CastMessageBuffer {
      * @param message Message to send
      */
     protected abstract void sendMessage(Object message);
+
+    /**
+     * Notifies the caller that the buffer will be reset
+     * @param sendSize Amount of messages sent since last reset
+     */
+    protected void beforeBufferReset(int sendSize) {}
+
+    /**
+     * Notifies the caller that the buffer was reset
+     */
+    protected void afterBufferReset() {}
 
     /**
      * Cancel the timer

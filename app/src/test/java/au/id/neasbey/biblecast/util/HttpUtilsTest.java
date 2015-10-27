@@ -3,23 +3,42 @@ package au.id.neasbey.biblecast.util;
 import android.text.Html;
 import android.text.Spanned;
 
-import junit.framework.TestCase;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.robolectric.RobolectricGradleTestRunner;
+import org.robolectric.annotation.Config;
+import org.robolectric.shadows.ShadowLog;
 
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
 import au.id.neasbey.biblecast.API.BiblesOrg.BibleAPIResponseParserBiblesOrgTest;
+import au.id.neasbey.biblecast.BuildConfig;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * Created by craigneasbey on 11/08/15.
  *
  * Test the string utilities
  */
-public class HttpUtilsTest extends TestCase {
+@RunWith(RobolectricGradleTestRunner.class)
+@Config(constants = BuildConfig.class)
+public class HttpUtilsTest {
 
-    private String createResultJSON() {
+    @BeforeClass
+    public static void setupRobolectric() {
+        ShadowLog.stream = System.out;
+    }
+
+    /**
+     * Creates JSON results
+     *
+     * @return JSON results string
+     */
+    private String createJSONResult() {
         StringBuilder sb = new StringBuilder();
 
         sb.append("{ \"elements\" : [ \"");
@@ -35,7 +54,12 @@ public class HttpUtilsTest extends TestCase {
         return sb.toString();
     }
 
-    private String createResultJSONSpanned() {
+    /**
+     * Creates a test JSON results string
+     *
+     * @return Test JSON string
+     */
+    private String createSpannedJSONResult() {
         StringBuilder sb = new StringBuilder();
 
         sb.append("{ \"elements\" : [ \"");
@@ -51,11 +75,17 @@ public class HttpUtilsTest extends TestCase {
         return sb.toString();
     }
 
+    /**
+     * Creates a test search results list
+     *
+     * @return Sample results list
+     */
     private List<Spanned> createResultList() {
         return BibleAPIResponseParserBiblesOrgTest.createSearchList(BibleAPIResponseParserBiblesOrgTest.passageType);
     }
 
-    public void testUrlEncodeUTF8Map() throws Exception {
+    @Test
+    public void shouldUrlEncodeMapUsingUTF8CharaterSet() throws Exception {
         final String expected = "query=test%26query&version=test%3Cversion";
 
         Map<String, String> parameters = new HashMap<>();
@@ -67,7 +97,8 @@ public class HttpUtilsTest extends TestCase {
         assertEquals(expected, actual);
     }
 
-    public void testUrlEncodeUTF8() throws Exception {
+    @Test
+    public void shouldUrlEncodeUsingUTF8CharaterSet() throws Exception {
         final String expected = "test%26query";
 
         String actual = HttpUtils.urlEncodeUTF8("test&query");
@@ -75,7 +106,9 @@ public class HttpUtilsTest extends TestCase {
         assertEquals(expected, actual);
     }
 
-    /*public void testAddAnchors() {
+    /*
+    @Test
+    public void shouldAddAnchors() {
         final String expectedJSON = createResultJSONSpanned();
 
         List<Spanned> elementsList = createResultList();
@@ -87,10 +120,12 @@ public class HttpUtilsTest extends TestCase {
         }
 
         assertEquals(expectedJSON, actualListJSON.toString());
-    }*/
+    }
+    */
 
-    public void testListToJSON() {
-        final String expectedJSON = createResultJSON();
+    @Test
+    public void shouldConvertListToJSON() {
+        final String expectedJSON = createJSONResult();
 
         List<Spanned> elementsList = createResultList();
         String actualJSON = HttpUtils.listToJSON(elementsList);
@@ -98,7 +133,8 @@ public class HttpUtilsTest extends TestCase {
         assertEquals(expectedJSON, actualJSON);
     }
 
-    public void testSpannedToJSON() {
+    @Test
+    public void shouldConvertSpannedToJSON() {
         final String expectedJSON = "<p dir=\\\"ltr\\\"><sup>1There was a man of the Pharisees, named Nicodemus, a ruler of the Jews:</sup><sup><sup>2the same came to Jesus by night, and said unto him, Rabbi, we know that thou art a teacher come from God: for no man can do these miracles that thou doest, except God be with him.</sup></sup><sup><sup><sup>3Jesus answered and said unto him, Verily, verily, I say unto thee, Except a man be born again, he cannot see the kingdom of God.</sup></sup></sup></p>";
         final String jsonHTML = "<p class=\\\"p\\\"><sup id=\\\"John.3.1\\\" class=\\\"v\\\">1<\\/sup>There was a man of the Pharisees, named Nicodemus, a ruler of the Jews:<sup id=\\\"John.3.2\\\" class=\\\"v\\\">2<\\/sup>the same came to Jesus by night, and said unto him, Rabbi, we know that thou art a teacher come from God: for no man can do these miracles that thou doest, except God be with him.<sup id=\\\"John.3.3\\\" class=\\\"v\\\">3<\\/sup>Jesus answered and said unto him, Verily, verily, I say unto thee, Except a man be born again, he cannot see the kingdom of God.<\\/p>";
 

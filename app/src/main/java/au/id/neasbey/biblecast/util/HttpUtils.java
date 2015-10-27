@@ -138,6 +138,10 @@ public class HttpUtils {
     }
 
     public static String spannedToJSON(Spanned element) {
-        return Html.toHtml(element).trim().replace("\"", "\\\"");
+        if(element != null) {
+            return Html.toHtml(element).trim().replace("\"", "\\\"");
+        }
+
+        return "";
     }
 }
