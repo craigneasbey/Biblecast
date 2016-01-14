@@ -68,7 +68,7 @@ public class ScrollGestureListenerTest {
 
         assertTrue(values.size() == 1);
 
-        assertEquals(values.get(0), "{\"gesture\":\"scroll_svg\",\"offset\":-34}");
+        assertEquals(values.get(0), "{\"gesture\":\"scroll\",\"offset\":-34}");
     }
 
     @Test
