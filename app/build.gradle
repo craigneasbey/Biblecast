@@ -1,25 +1,14 @@
 apply plugin: 'com.android.application'
 
-buildscript {
-    repositories {
-        mavenCentral()
-        jcenter()
-    }
-
-    dependencies {
-        classpath 'com.android.tools.build:gradle:1.3.1'
-    }
-}
-
 android {
     signingConfigs {
     }
-    compileSdkVersion 22
-    buildToolsVersion "22.0.1"
+    compileSdkVersion 23
+    buildToolsVersion "23.0.2"
     defaultConfig {
         applicationId "au.id.neasbey.biblecast"
         minSdkVersion 18
-        targetSdkVersion 22
+        targetSdkVersion 23
         versionCode 2
         versionName "1.1.0"
 
@@ -34,6 +23,10 @@ android {
         release {
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+        debuggable.initWith(buildTypes.debug)
+        debuggable {
+            testCoverageEnabled = false
         }
     }
     testOptions {
@@ -61,26 +54,22 @@ android {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile 'com.android.support:appcompat-v7:22.+'
-    compile 'com.android.support:mediarouter-v7:22.+'
+    compile 'com.android.support:appcompat-v7:23.1.1'
+    compile 'com.android.support:mediarouter-v7:23.1.1'
     compile 'com.google.android.gms:play-services-cast:7.8.0'
 
-    androidTestCompile 'com.android.support:appcompat-v7:22.+'
-    androidTestCompile 'com.android.support.test:runner:0.3'
+    androidTestCompile 'com.android.support:appcompat-v7:23.1.1'
+    androidTestCompile 'com.android.support.test:runner:0.4.1'
     // Set this dependency to use JUnit 4 rules
-    androidTestCompile 'com.android.support.test:rules:0.3'
+    androidTestCompile 'com.android.support.test:rules:0.4.1'
     // Set this dependency to build and run Espresso tests
-    androidTestCompile 'com.android.support.test.espresso:espresso-core:2.2'
+    androidTestCompile 'com.android.support.test.espresso:espresso-core:2.2.1'
     // Set this dependency to build and run UI Automator tests
     androidTestCompile 'com.android.support.test.uiautomator:uiautomator-v18:2.1.1'
 
     // the following is required to use Mockito and JUnit for your
     // instrumentation unit tests on the JVM
     androidTestCompile 'junit:junit:4.12'
-    androidTestCompile 'org.mockito:mockito-core:1.10.19'
-    androidTestCompile 'org.hamcrest:hamcrest-library:1.1'
-    androidTestCompile "com.google.dexmaker:dexmaker:1.2"
-    androidTestCompile "com.google.dexmaker:dexmaker-mockito:1.2"
 
     // the following is required to use Mockito and JUnit for your unit
     // tests on the JVM
