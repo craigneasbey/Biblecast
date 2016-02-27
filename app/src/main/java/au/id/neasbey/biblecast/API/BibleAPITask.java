@@ -9,8 +9,6 @@ import au.id.neasbey.biblecast.API.BiblesOrg.BibleAPIConnectionHandlerBiblesOrg;
 import au.id.neasbey.biblecast.API.BiblesOrg.BibleAPIResponseParserBiblesOrg;
 import au.id.neasbey.biblecast.BibleSearch;
 import au.id.neasbey.biblecast.R;
-import au.id.neasbey.biblecast.GUIHelper.SearchSuggestionProvider;
-import au.id.neasbey.biblecast.GUIHelper.SuggestionAsyncQueryHandler;
 import au.id.neasbey.biblecast.util.UIUtils;
 
 /**
@@ -156,10 +154,7 @@ public class BibleAPITask extends AsyncTask<String, String, String> {
     private void handleBookResults() {
 
         bibleAPI.updateResultList(bibleSearch.getBooks());
-
-        // update search suggestions
-        SuggestionAsyncQueryHandler suggestionAsyncQueryHandler = new SuggestionAsyncQueryHandler(bibleSearch.getContentResolver());
-        suggestionAsyncQueryHandler.startQuery(0, bibleSearch.getBooks(), SearchSuggestionProvider.CONTENT_URI, null, null, null, null);
+        bibleSearch.updateBookView();
     }
 
     @Override

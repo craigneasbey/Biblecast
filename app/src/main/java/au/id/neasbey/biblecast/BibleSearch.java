@@ -31,6 +31,8 @@ import java.util.List;
 import au.id.neasbey.biblecast.API.BibleAPIQueryType;
 import au.id.neasbey.biblecast.API.BibleAPITask;
 import au.id.neasbey.biblecast.GUIHelper.SearchOnSuggestionListener;
+import au.id.neasbey.biblecast.GUIHelper.SearchSuggestionProvider;
+import au.id.neasbey.biblecast.GUIHelper.SuggestionAsyncQueryHandler;
 import au.id.neasbey.biblecast.GUIHelper.VersionOnItemSelectedListener;
 import au.id.neasbey.biblecast.cast.BibleCast;
 import au.id.neasbey.biblecast.cast.ScrollGestureListener;
@@ -64,6 +66,8 @@ public class BibleSearch extends AppCompatActivity {
 
     private String bibleVersion;
 
+    private boolean bibleListCache;
+
     private Spinner versionSpinner;
 
     private List<BibleVersion> versionList;
@@ -88,6 +92,7 @@ public class BibleSearch extends AppCompatActivity {
 
     public BibleSearch() {
         bibleVersion = DEFAULT_VERSION;
+        bibleListCache = false;
         versionList = new LinkedList<>();
         bookList = new LinkedList<>();
         resultList = new LinkedList<>();
@@ -99,12 +104,7 @@ public class BibleSearch extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         Log.d(TAG, "onCreate");
 
-        // restore previous results
-        if (savedInstanceState != null) {
-            bookList = (List<String>) savedInstanceState.getSerializable(STATE_BOOKS);
-            versionList = (List<BibleVersion>) savedInstanceState.getSerializable(STATE_VERSIONS);
-            resultList = (List<Spanned>) savedInstanceState.getSerializable(STATE_RESULTS);
-        }
+        restoreBibleSearchCache(savedInstanceState);
 
         setContentView(R.layout.activity_bible_search);
         UIUtils.setContext(this);
@@ -115,11 +115,51 @@ public class BibleSearch extends AppCompatActivity {
         setupGestureView();
         setupVersionSpinner();
 
+        if(bibleListCache) {
+            updateVersionView();
+            updateBookView();
+            updateResultView();
+        }
+
         getBibleVersions();
         getBookSuggestions();
 
         // for debug only
         //hideResults();
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle savedInstanceState) {
+        super.onSaveInstanceState(savedInstanceState);
+
+        saveBibleSearchCache(savedInstanceState);
+    }
+
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+
+        restoreBibleSearchCache(savedInstanceState);
+    }
+
+    private void saveBibleSearchCache(Bundle savedInstanceState) {
+        savedInstanceState.putSerializable(STATE_BOOKS, (Serializable) bookList);
+        savedInstanceState.putSerializable(STATE_VERSIONS, (Serializable) versionList);
+        savedInstanceState.putSerializable(STATE_RESULTS, (Serializable) resultList);
+    }
+
+    private void restoreBibleSearchCache(Bundle savedInstanceState) {
+        // restore previous results
+        if (savedInstanceState != null) {
+            bookList = (List<String>) savedInstanceState.getSerializable(STATE_BOOKS);
+            versionList = (List<BibleVersion>) savedInstanceState.getSerializable(STATE_VERSIONS);
+            resultList = (List<Spanned>) savedInstanceState.getSerializable(STATE_RESULTS);
+
+            // stop progress dialog being displayed if book and version lists exist
+            if (bookList != null && !bookList.isEmpty() && versionList != null && !versionList.isEmpty()) {
+                bibleListCache = true;
+            }
+        }
     }
 
     /**
@@ -223,24 +263,6 @@ public class BibleSearch extends AppCompatActivity {
     }
 
     @Override
-    protected void onSaveInstanceState(Bundle savedInstanceState) {
-        super.onSaveInstanceState(savedInstanceState);
-
-        savedInstanceState.putSerializable(STATE_BOOKS, (Serializable) bookList);
-        savedInstanceState.putSerializable(STATE_VERSIONS, (Serializable) versionList);
-        savedInstanceState.putSerializable(STATE_RESULTS, (Serializable) resultList);
-    }
-
-    @Override
-    protected void onRestoreInstanceState(Bundle savedInstanceState) {
-        super.onRestoreInstanceState(savedInstanceState);
-
-        bookList = (List<String>) savedInstanceState.getSerializable(STATE_BOOKS);
-        versionList = (List<BibleVersion>) savedInstanceState.getSerializable(STATE_VERSIONS);
-        resultList = (List<Spanned>) savedInstanceState.getSerializable(STATE_RESULTS);
-    }
-
-    @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_bible_search, menu);
@@ -291,6 +313,13 @@ public class BibleSearch extends AppCompatActivity {
         }
     }
 
+    public void updateBookView() {
+        // update search suggestions
+        SuggestionAsyncQueryHandler suggestionAsyncQueryHandler = new SuggestionAsyncQueryHandler(getContentResolver());
+        suggestionAsyncQueryHandler.startQuery(0, getBooks(), SearchSuggestionProvider.CONTENT_URI, null, null, null, null);
+    }
+
+
     public void showResults() {
         if (resultView != null) {
             resultView.setVisibility(View.VISIBLE);
@@ -339,15 +368,18 @@ public class BibleSearch extends AppCompatActivity {
      * Create and show progress dialog (message)
      */
     public void showProgress() {
-        progressDialog.setMessage(getText(R.string.ui_wait));
-        progressDialog.show();
+        // if lists are not cached, nothing to display so show dialog
+        if(!bibleListCache) {
+          progressDialog.setMessage(getText(R.string.ui_wait));
+          progressDialog.show();
+        }
     }
 
     /**
      * Close progress dialog
      */
     public void closeDialog() {
-        if (progressDialog != null) {
+        if (!bibleListCache && progressDialog != null) {
             progressDialog.dismiss();
         }
     }
