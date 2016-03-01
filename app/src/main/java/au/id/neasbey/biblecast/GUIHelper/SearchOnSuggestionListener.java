@@ -26,6 +26,11 @@ public class SearchOnSuggestionListener implements SearchView.OnSuggestionListen
         return updateSearchQuery(position);
     }
 
+    /**
+     * Populate the search query with the suggestion from the specified position
+     * @param position Search suggestion item
+     * @return true to handle the event
+     */
     public boolean updateSearchQuery(int position) {
         // http://ramannanda.blogspot.com.au/2014/10/android-searchview-integration-with.html
         Cursor cursor = (Cursor) searchView.getSuggestionsAdapter().getItem(position);

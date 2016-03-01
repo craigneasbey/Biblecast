@@ -111,9 +111,10 @@ public class BibleSearch extends AppCompatActivity {
         bibleCast = new BibleCast(this);
         progressDialog = new ProgressDialog(this);
 
+        setupSearchView();
+        setupVersionSpinner();
         setupResultsView();
         setupGestureView();
-        setupVersionSpinner();
 
         if(bibleListCache) {
             updateVersionView();
@@ -163,6 +164,31 @@ public class BibleSearch extends AppCompatActivity {
     }
 
     /**
+     * Setup the search view to get the searchable info and get suggestions
+     */
+    private void setupSearchView() {
+
+        // Get the SearchView and set the searchable configuration
+        SearchManager searchManager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
+        SearchView searchView = (SearchView) findViewById(R.id.searchView);
+        searchView.setSearchableInfo(searchManager.getSearchableInfo(getComponentName()));
+        searchView.setOnSuggestionListener(new SearchOnSuggestionListener(searchView));
+    }
+
+    /**
+     *
+     */
+    private void setupVersionSpinner() {
+        // may need this: http://stackoverflow.com/questions/1625249/android-how-to-bind-spinner-to-custom-object-list
+        versionAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, versionList);
+        versionAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+
+        versionSpinner = (Spinner) findViewById(R.id.versionSpinner);
+        versionSpinner.setAdapter(versionAdapter);
+        versionSpinner.setOnItemSelectedListener(new VersionOnItemSelectedListener(this));
+    }
+
+    /**
      * Link the resultView to the resultList via an array adapter so that the results can be displayed
      */
     private void setupResultsView() {
@@ -182,16 +208,6 @@ public class BibleSearch extends AppCompatActivity {
         mDetector = new GestureDetectorCompat(this, new ScrollGestureListener(bibleCast));
 
         scrollImageView = (ImageView) findViewById(R.id.scrollImageView);
-    }
-
-    private void setupVersionSpinner() {
-        // may need this: http://stackoverflow.com/questions/1625249/android-how-to-bind-spinner-to-custom-object-list
-        versionAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, versionList);
-        versionAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-
-        versionSpinner = (Spinner) findViewById(R.id.versionSpinner);
-        versionSpinner.setAdapter(versionAdapter);
-        versionSpinner.setOnItemSelectedListener(new VersionOnItemSelectedListener(this));
     }
 
     /**
@@ -266,12 +282,6 @@ public class BibleSearch extends AppCompatActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_bible_search, menu);
-
-        // Get the SearchView and set the searchable configuration
-        SearchManager searchManager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
-        SearchView searchView = (SearchView) findViewById(R.id.searchView);
-        searchView.setSearchableInfo(searchManager.getSearchableInfo(getComponentName()));
-        searchView.setOnSuggestionListener(new SearchOnSuggestionListener(searchView));
 
         MenuItem mediaRouteMenuItem = menu.findItem(R.id.media_route_menu_item);
         MediaRouteActionProvider mediaRouteActionProvider = (MediaRouteActionProvider) MenuItemCompat.getActionProvider(mediaRouteMenuItem);
