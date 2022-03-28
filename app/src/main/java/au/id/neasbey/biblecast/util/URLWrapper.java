@@ -6,7 +6,7 @@ import java.net.URL;
 
 /**
  * Created by craigneasbey on 13/08/15.
- *
+ * <p/>
  * This URL connection wrapper class allows mocking during testing
  */
 public class URLWrapper {
@@ -18,7 +18,7 @@ public class URLWrapper {
     }
 
     public HttpURLConnection openConnection() throws IOException {
-        return ((HttpURLConnection)new URL(urlString).openConnection());
+        return ((HttpURLConnection) new URL(urlString).openConnection());
     }
 
     public String getUrlString() {

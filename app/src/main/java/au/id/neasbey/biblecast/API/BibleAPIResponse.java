@@ -9,17 +9,17 @@ public class BibleAPIResponse {
 
     private static final String TAG = BibleAPIResponse.class.getSimpleName();
 
-    public static final int responseCodeOk = 200;
+    public static final int RESPONSE_CODE_OK = 200;
 
-    public static final String responseMessageOk = "OK";
+    public static final String RESPONSE_MESSAGE_OK = "OK";
 
-    public static final int responseCodeNotFound = 404;
+    public static final int RESPONSE_CODE_NOT_FOUND = 404;
 
-    public static final String responseMessageNotFound = "Not Found";
+    public static final String RESPONSE_MESSAGE_NOT_FOUND = "Not Found";
 
-    public static final int responseCodeUnauthorized = 401;
+    public static final int RESPONSE_CODE_UNAUTHORIZED = 401;
 
-    public static final String responseMessageUnauthorized = "Unauthorized";
+    public static final String RESPONSE_MESSAGE_UNAUTHORIZED = "Unauthorized";
 
     private int responseCode;
 

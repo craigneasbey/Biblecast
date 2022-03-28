@@ -1,7 +1,14 @@
 <resources>
     <string name="app_name">Biblecast</string>
-    <string name="action_settings">Settings</string>
-    <string name="api_url">https://bibles.org/v2/search.js</string>
+    <string name="app_id">F285D9CB</string>
+    <string name="namespace">urn:x-cast:au.id.neasbey.biblecast</string>
+    <string name="ui_wait">Please wait…</string>
+    <string name="queryHint">eg. John 3:16</string>
+    <string name="ok">OK</string>
+    <!-- Bible API -->
+    <string name="api_search_url">https://bibles.org/v2/search.js</string>
+    <string name="api_versions_url">https://bibles.org/v2/versions.js</string>
+    <string name="api_books_url">https://bibles.org/v2/versions/eng-KJV/books.js</string>
     <string name="api_username"></string>
     <string name="api_password"></string>
     <string name="api_bible_org_incorrect">Application API token is incorrect</string>
@@ -9,13 +16,15 @@
     <string name="api_no_auth">No API authentication specified</string>
     <string name="api_no_query">No API query specified</string>
     <string name="api_no_version">No API bible versions specified</string>
+    <string name="api_no_language">No API bible language specified</string>
     <string name="api_no_results">No results found</string>
     <string name="api_error_response">API response error: </string>
     <string name="api_error_connection">API connection error: </string>
     <string name="api_error_close">Failed to close input reader: </string>
-    <string name="ui_wait">Please wait…</string>
     <string name="api_failed">Search Failed</string>
     <string name="api_request_complete">Search Complete</string>
-    <string name="queryHint">eg. John 3:16</string>
-    <string name="ok">OK</string>
+    <!-- Google Cast -->
+    <string name="cast_media_route_menu_title">View on&#8230;</string>
+    <string name="cast_instructions">{\"display\":\"&lt;p id=\\\"instruction\\\"&gt;Please search&lt;/p&gt;\"}</string>
+    <string name="cast_scroll_image_alt">Scroll up and down</string>
 </resources>

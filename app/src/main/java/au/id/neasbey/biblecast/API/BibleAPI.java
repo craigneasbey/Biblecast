@@ -6,6 +6,8 @@ import android.util.Log;
 
 import java.util.List;
 
+import au.id.neasbey.biblecast.exception.BiblecastException;
+import au.id.neasbey.biblecast.model.BibleVersion;
 import au.id.neasbey.biblecast.R;
 import au.id.neasbey.biblecast.util.UIUtils;
 import au.id.neasbey.biblecast.util.URLWrapper;
@@ -23,6 +25,8 @@ public abstract class BibleAPI {
 
     private BibleAPIResponseParser bibleAPIResponseParser;
 
+    private BibleAPIQueryType queryType;
+
     private String query;
 
     private String URL;
@@ -33,7 +37,9 @@ public abstract class BibleAPI {
 
     private String versions;
 
-    private List<Spanned> returnedList;
+    private String language;
+
+    private List<?> returnedList;
 
     public BibleAPI(BibleAPIConnectionHandler bibleAPIConnectionHandler, BibleAPIResponseParser bibleAPIResponseParser) {
         this.bibleAPIConnectionHandler = bibleAPIConnectionHandler;
@@ -57,8 +63,21 @@ public abstract class BibleAPI {
 
             // parse the Bible API response
             getBibleAPIResponseParser().parseResponseStatus(bibleAPIResponse.getResponseCode(), bibleAPIResponse.getResponseMessage());
-            setReturnedList(getBibleAPIResponseParser().parseResponseDataToList(bibleAPIResponse.getResponseData()));
-        } catch (BibleSearchAPIException bsae) {
+
+            switch(queryType) {
+                case SEARCH:
+                    setReturnedList(getBibleAPIResponseParser().parseResponseDataToSpannedList(bibleAPIResponse.getResponseData()));
+                    break;
+                case VERSION:
+                    setReturnedList(getBibleAPIResponseParser().parseResponseDataToVersionList(bibleAPIResponse.getResponseData()));
+                    break;
+                case BOOK:
+                    setReturnedList(getBibleAPIResponseParser().parseResponseDataToStringList(bibleAPIResponse.getResponseData()));
+                    break;
+                default:
+                    setReturnedList(getBibleAPIResponseParser().parseResponseDataToSpannedList(bibleAPIResponse.getResponseData()));
+            }
+        } catch (BiblecastException bsae) {
             return bsae.getMessage();
         }
 
@@ -70,12 +89,12 @@ public abstract class BibleAPI {
      * Note: Changed protected to public class access for testing
      *
      * @return Complete URL with encoded parameters
-     * @throws BibleSearchAPIException
+     * @throws BiblecastException
      */
-    public String getRequestURL() throws BibleSearchAPIException {
+    public String getRequestURL() throws BiblecastException {
 
         if (TextUtils.isEmpty(getURL())) {
-            throw new BibleSearchAPIException(UIUtils.getContext().getString(R.string.api_no_url));
+            throw new BiblecastException(UIUtils.getContext().getString(R.string.api_no_url));
         }
 
         StringBuilder requestText = new StringBuilder();
@@ -92,9 +111,9 @@ public abstract class BibleAPI {
      * Checks the API parameters, then encodes them
      *
      * @return Encoded parameters for the API URL
-     * @throws BibleSearchAPIException
+     * @throws BiblecastException
      */
-    public abstract String getRequestParameters() throws BibleSearchAPIException;
+    public abstract String getRequestParameters() throws BiblecastException;
 
     /**
      * Checks if results are returned
@@ -110,17 +129,55 @@ public abstract class BibleAPI {
      *
      * @param resultList Results from the Bible API search
      */
-    public void updateResultList(List<Spanned> resultList) {
+    public void updateResultList(List<?> resultList) {
         resultList.clear();
 
-        for (Spanned html : returnedList) {
-            if(!TextUtils.isEmpty(html)) {
-                resultList.add(html);
-            }
+        switch(getQueryType()) {
+            case SEARCH:
+                updateSearchResults((List<Spanned>)resultList);
+                break;
+            case VERSION:
+                updateVersionResults((List<BibleVersion>)resultList);
+                break;
+            case BOOK:
+                updateBookResults((List<String>)resultList);
+                break;
+            default:
+                updateSearchResults((List<Spanned>)resultList);
         }
 
         // ensure memory is freed
         setReturnedList(null);
+    }
+
+    private void updateSearchResults(List<Spanned> resultList) {
+        for (Spanned html : (List<Spanned>)returnedList) {
+            if(!TextUtils.isEmpty(html)) {
+                resultList.add(html);
+            }
+        }
+    }
+
+    private void updateVersionResults(List<BibleVersion> resultList) {
+        for (BibleVersion version: (List<BibleVersion>)returnedList) {
+                resultList.add(version);
+        }
+    }
+
+    private void updateBookResults(List<String> resultList) {
+        for (String book : (List<String>)returnedList) {
+            if(!TextUtils.isEmpty(book)) {
+                resultList.add(book);
+            }
+        }
+    }
+
+    public BibleAPIQueryType getQueryType() {
+        return queryType;
+    }
+
+    public void setQueryType(BibleAPIQueryType queryType) {
+        this.queryType = queryType;
     }
 
     public String getQuery() {
@@ -163,7 +220,15 @@ public abstract class BibleAPI {
         this.versions = versions;
     }
 
-    protected void setReturnedList(List<Spanned> returnedList) {
+    public String getLanguage() {
+        return language;
+    }
+
+    public void setLanguage(String language) {
+        this.language = language;
+    }
+
+    protected void setReturnedList(List<?> returnedList) {
         this.returnedList = returnedList;
     }
 
