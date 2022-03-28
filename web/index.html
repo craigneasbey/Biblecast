@@ -1,0 +1,247 @@
+<!--
+Copyright (C) 2014 Google Inc. All Rights Reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<!--
+    Extended by craigneasbey on 17/08/15.
+
+    Biblecast application Google cast custom receiver
+
+    https://github.com/craigneasbey/Biblecast
+-->
+<!DOCTYPE html>
+<html>
+<head>
+    <style type="text/css">
+        body {
+            overflow:hidden;
+            background-color: #222;
+            width: 90%;
+            margin: auto auto auto;
+        }
+        #message {
+            border:0px solid silver;
+            display: table-cell;
+            vertical-align:middle;
+            color:#FFFFFF;
+            background-color:#222;
+            font-weight:bold;
+            font-family:Verdana, Geneva, sans-serif;
+            font-size:40px;
+        }
+        #instruction {
+            margin-top: 10%;
+        }
+        sup {
+            margin-left: 0.5em;
+            margin-right: 0.5em;
+        }
+
+    </style>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.min.js"></script>
+    <title>Biblecast</title>
+</head>
+<body>
+<DIV id="message"></DIV>
+<script type="text/javascript"
+        src="//www.gstatic.com/cast/sdk/libs/receiver/2.0.0/cast_receiver.js"></script>
+<script type="text/javascript">
+      if (typeof String.prototype.contains === 'undefined') {
+        String.prototype.contains = function(it) { return this.indexOf(it) != -1; };
+      }
+
+      var delayms = 5;
+
+      window.onload = function() {
+        cast.receiver.logger.setLevelValue(0);
+        window.castReceiverManager = cast.receiver.CastReceiverManager.getInstance();
+        window.senderId = 0;
+        console.log('Starting Receiver Manager');
+        console.log(screenSize());
+
+        // handler for the 'ready' event
+        castReceiverManager.onReady = function(event) {
+          console.log('Received Ready event: ' + JSON.stringify(event.data));
+          window.castReceiverManager.setApplicationState("Application status is ready...");
+        };
+
+        // handler for 'senderconnected' event
+        castReceiverManager.onSenderConnected = function(event) {
+          console.log('Received Sender Connected event: ' + event.data);
+          console.log(window.castReceiverManager.getSender(event.data).userAgent);
+          window.senderId = event.senderId
+
+          // send screen size back to sender
+          window.messageBus.send(event.senderId, screenSizeJSON());
+        };
+
+        // handler for 'senderdisconnected' event
+        castReceiverManager.onSenderDisconnected = function(event) {
+          console.log('Received Sender Disconnected event: ' + event.data);
+          if (window.castReceiverManager.getSenders().length == 0) {
+	        window.close();
+	      }
+        };
+
+        // create a CastMessageBus to handle messages for a custom namespace
+        window.messageBus =
+          window.castReceiverManager.getCastMessageBus(
+              'urn:x-cast:au.id.neasbey.biblecast', cast.receiver.CastMessageBus.MessageType.JSON);
+
+        // handler for the CastMessageBus message event
+        window.messageBus.onMessage = function(event) {
+          console.log('Message [' + event.senderId + ']: ' + event.data);
+
+          var jsonData = event.data;
+
+          // check if the event is a gesture
+          if (jsonData.gesture !== undefined) {
+                if (jsonData.offset !== undefined) {
+                    if(jsonData.gesture.contains("scroll")) {
+                        scroll(jsonData.offset);
+                    }
+                }
+          } else if (jsonData.elements !== undefined) {
+                var elements = jsonData.elements;
+                var html = "";
+                //clearMessage();
+                var amend = false;
+                for(var i=0; i < elements.length; i++) {
+                    //amendMessage(i, elements[i]);
+                    if(amend) {
+                        html += " ";
+                    } else {
+                        amend = true;
+                    }
+                    html += elements[i];
+                }
+                displayText(html);
+                window.castReceiverManager.setApplicationState();
+          } else if (jsonData.display !== undefined) {
+                displayText(jsonData.display);
+          } else {
+            // display the message from the sender
+            displayText(event.data);
+          }
+
+          if (event.data.delay !== undefined) {
+            event.data.delay.receive = jQuery.now();
+          }
+
+          // inform all senders on the CastMessageBus of the incoming message event
+          // sender message listener will be invoked
+          window.messageBus.broadcast(event.data);
+        }
+
+        function returnDelay(delay) {
+            if (delay.send !== undefined) {
+                var currentMS = jQuery.now();
+
+                // send delay back to sender
+                window.messageBus.send(window.senderId, delayJSON(delay.send, currentMS));
+            }
+        }
+
+        // initialize the CastReceiverManager with an application status message
+        window.castReceiverManager.start({statusText: "Application is starting"});
+        console.log('Receiver Manager started');
+      };
+
+      // utility function to clean the message div
+      function clearMessage() {
+        jQuery('#message').html("");
+      };
+
+      // utility function to amend to the message div
+      function amendMessage(id, html) {
+        console.log(id + ":" + html);
+        jQuery('#message').append("<div id='" + id + "' class='paragraph'>" + html + "</div>");
+      };
+
+      // utility function to display the text message in the input field
+      function displayText(text) {
+        console.log(text);
+        document.getElementById("message").innerHTML=text;
+        window.castReceiverManager.setApplicationState(text);
+      };
+
+      // scroll to the current element
+      function scrollTo(divId){
+         console.log(divId);
+         jQuery('html, body').animate({
+             scrollTop: jQuery("#" + divId).offset().top
+         }, delayms);
+      };
+
+      // scroll up or down
+      function scroll(offSet){
+        //console.log("offSet: " + offSet);
+        jQuery('body').scrollTop(Number(jQuery('body').scrollTop()) + Number(offSet));
+      };
+
+        // scroll up or down with delay
+        function scrollDelay(offSet){
+          if(offSet < 0) {
+              //scrollUp(Math.abs(offSet));
+              scrollDirection("-", Math.abs(offSet));
+          } else if(offSet > 0) {
+              //scrollDown(offSet);
+              scrollDirection("+", Math.abs(offSet));
+          }
+        };
+
+      // scroll up with delay
+      function scrollUpDelay(offSet){
+         console.log("Up: " + offSet);
+         jQuery('html, body').animate({
+             "scrollTop": "-=" + offSet + "px"
+         }, delayms);
+      };
+
+      // scroll down with delay
+      function scrollDownDelay(offSet){
+         console.log("Down: " + offSet);
+         jQuery('html, body').animate({
+             "scrollTop": "+=" + offSet + "px"
+         }, delayms);
+      };
+
+        // scroll a direction with delay
+      function scrollDirectionDelay(direction, offSet) {
+         console.log("Direction: " + direction + " Offset: " + offSet);
+         jQuery('html, body').animate({
+             "scrollTop": direction + "=" + offSet + "px"
+         }, delayms);
+      }
+
+      function screenSize() {
+        var txt = "";
+        txt += "Total width/height: " + screen.width + "*" + screen.height + "\n";
+        txt += "Available width/height: " + screen.availWidth + "*" + screen.availHeight + "\n";
+        txt += "Color depth: " + screen.colorDepth + "\n";
+        txt += "Color resolution: " + screen.pixelDepth + "\n";
+        return txt;
+      }
+
+      function screenSizeJSON() {
+        return { "dimensions" : { "width" : screen.availWidth, "height" : screen.availHeight } };
+      }
+
+      function delayJSON(sendMS, currentMS) {
+        return { "delay" : { "send" : sendMS, "receive" : currentMS } };
+      }
+
+</script>
+</body>
+</html>
